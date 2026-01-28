@@ -1,0 +1,23 @@
+# --- Java / Spring Boot (สำคัญมาก) ---
+target/
+!.mvn/wrapper/maven-wrapper.jar
+build/
+*.class
+*.jar
+*.war
+*.ear
+
+# --- Database / Temp files ---
+*.db
+*.sqlite
+
+# --- Docker ---
+.docker/
+# ถ้าไม่ต้องการเอาไฟล์ env ของ docker ขึ้น
+.env.docker
+
+# --- IDE Config (เพิ่มเติม) ---
+.idea/
+*.iml
+.vscode/
+# ยกเว้น settings.json ถ้าอยากแชร์กับทีม แต่แนะนำให้ข้ามไปก่อน
