@@ -73,8 +73,7 @@ public class GoogleAuthService {
         headers.setBearerAuth(accessToken);
         HttpEntity<Void> entity = new HttpEntity<>(headers);
 
-        ResponseEntity<Map> profileResponse =
-                restTemplate.exchange(userInfoUri, HttpMethod.GET, entity, Map.class);
+        ResponseEntity<Map> profileResponse = restTemplate.exchange(userInfoUri, HttpMethod.GET, entity, Map.class);
 
         Map<String, Object> userInfo = profileResponse.getBody();
         String email = (String) userInfo.get("email");

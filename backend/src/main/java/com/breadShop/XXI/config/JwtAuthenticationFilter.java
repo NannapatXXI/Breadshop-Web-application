@@ -1,11 +1,9 @@
 package com.breadShop.XXI.config;
 
-import com.breadShop.XXI.service.JwtService;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -13,9 +11,14 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.lang.NonNull;
 
-import java.io.IOException;
+import com.breadShop.XXI.service.JwtService;
+
+import io.jsonwebtoken.ExpiredJwtException;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -27,6 +30,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     public JwtAuthenticationFilter(JwtService jwtService, UserDetailsService userDetailsService) {
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
+        
     }
 
     @Override
@@ -50,7 +54,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         jwt = authHeader.substring(7);
 
         // 3. Extract email จาก token
-        userEmail = jwtService.extractEmail(jwt);
+        try {
+            userEmail = jwtService.extractEmail(jwt);
+        } catch (ExpiredJwtException e) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.getWriter().write("""
+                {
+                "error": "JWT_EXPIRED",
+                "message": "Token หมดอายุ กรุณา login ใหม่"
+                }
+            """);
+            return; // ⛔ ห้ามให้ request ไปต่อ
+        }
+      
 
         // 4. ถ้ามี email และยังไม่ได้ authenticate ให้ตรวจ token
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -79,4 +96,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // 7. ให้ Request ไปต่อ
         filterChain.doFilter(request, response);
     }
+
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        System.out.println("JWT FILTER PATH = " + request.getServletPath());
+
+        String path = request.getServletPath();
+        return path.startsWith("/api/v1/auth/");
+    }
+    
+
 }

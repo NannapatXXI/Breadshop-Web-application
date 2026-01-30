@@ -1,22 +1,28 @@
 package com.breadShop.XXI.controller;
 
-import com.breadShop.XXI.dto.LoginRequest;
-import com.breadShop.XXI.dto.RegisterRequest;
-import com.breadShop.XXI.entity.User;
-import com.breadShop.XXI.repository.UserRepository;
-import com.breadShop.XXI.service.AuthService;
-import com.breadShop.XXI.service.GoogleAuthService;
-
+import java.net.URI;
+import java.util.Map;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.net.URI;
-import java.util.Map;
+import com.breadShop.XXI.dto.CheckEmailRequest;
+import com.breadShop.XXI.dto.LoginRequest;
+import com.breadShop.XXI.dto.RegisterRequest;
+import com.breadShop.XXI.entity.User;
+import com.breadShop.XXI.repository.UserRepository;
+import com.breadShop.XXI.service.AuthService;
+import com.breadShop.XXI.service.GoogleAuthService;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -36,7 +42,9 @@ public class AuthController {
     // ------------------ Login ------------------
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
+        System.out.println(loginRequest);
         return authService.loginUser(loginRequest);
+
     }
 
     // ------------------ Register ------------------
@@ -44,6 +52,18 @@ public class AuthController {
     public ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest) {
         return authService.registerUser(registerRequest);
     }
+     // ------------------ Checkpassword ------------------
+     @PostMapping("/checkpassword")
+     public ResponseEntity<?> checkpass(@RequestBody CheckEmailRequest emailRequest) {
+       
+        System.out.println("เข้า checkpassword แล้ว: " + emailRequest.email());
+        try {
+            return authService.checkEmail(emailRequest);
+        } catch (Exception e) {
+            e.printStackTrace(); // 🔥 ดู stacktrace เต็ม ๆ
+            throw e;
+        }
+     }
 
     // ------------------ Google Login URL ------------------
     // endpoint ให้ frontend รับ URL
@@ -76,7 +96,7 @@ public class AuthController {
         } catch (Exception e) {
             // ถ้าพัง ให้ปริ้น Error ออกมาดูที่ Console
             System.err.println("เกิดข้อผิดพลาด!!!");
-            e.printStackTrace();
+           // e.printStackTrace();
             
             // ส่ง Error กลับไปบอก Frontend (จะได้ไม่โหลดไฟล์ว่างๆ)
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

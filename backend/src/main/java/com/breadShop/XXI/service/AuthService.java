@@ -1,8 +1,8 @@
 package com.breadShop.XXI.service;
 
-import com.breadShop.XXI.dto.*;
-import com.breadShop.XXI.entity.User;
-import com.breadShop.XXI.repository.UserRepository;
+import java.time.LocalDateTime;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,7 +14,13 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
+import com.breadShop.XXI.dto.AuthenticationResponse;
+import com.breadShop.XXI.dto.CheckEmailRequest;
+import com.breadShop.XXI.dto.ErrorResponse;
+import com.breadShop.XXI.dto.LoginRequest;
+import com.breadShop.XXI.dto.RegisterRequest;
+import com.breadShop.XXI.entity.User;
+import com.breadShop.XXI.repository.UserRepository;
 
 //สำหรับการสมัครผ่านหน้าเว็บ
 @Service
@@ -117,5 +123,27 @@ public class AuthService {
     
         return ResponseEntity.ok(new AuthenticationResponse(jwtToken, user.getUsername(), user.getEmail()));
     }
+    // ------------------ checkEmail ------------------
+    public ResponseEntity<?> checkEmail(CheckEmailRequest request) {
+
+        if (request.email() == null || request.email().isEmpty()) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(new ErrorResponse("Email ไม่ควรเป็นค่าว่าง"));
+        }
+
+        System.out.println("Email ที่รับมา = " + request.email());
+
+        if (userRepository.findByEmail(request.email()).isEmpty()) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponse("ไม่มี Email นี้ ในระบบ"));
+        }
+
+        return ResponseEntity.ok(
+            Map.of("message", "Email ถูกต้อง")
+        );
+    }
+
     
 }

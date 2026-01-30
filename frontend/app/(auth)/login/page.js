@@ -49,32 +49,34 @@ export default function LoginPage() {
     }
 
     try {
-      // 5. ดึง URL ของ Backend จากตัวแปร (ตามที่เราคุยกัน)
       const API_URL = process.env.NEXT_PUBLIC_API_URL;
-      
-      // 6. ยิง fetch ไปที่ Backend ของคุณ
-      const res = await fetch(`${API_URL}/api/v1/auth/login`, { // (แก้ Path นี้ให้ตรงกับ Spring Boot)
+      console.log("API_URL raw =", JSON.stringify(API_URL));
+
+      const res = await fetch(`${API_URL}/api/v1/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({usernameOrEmail : email, password }),
+        body: JSON.stringify({ usernameOrEmail: email, password }),
       });
-
-      // 7. ตรวจสอบคำตอบจาก Server
+  
+      const data = await res.json(); // ต้องอ่าน json ก่อนเพื่อเอา Token
+  
       if (res.ok) {
-        // ถ้า Server ตอบ 200 (สำเร็จ)
+        // 1. เก็บ Token ลงใน localStorage (สมมติว่า Backend ส่ง field ชื่อ accessToken หรือ token)
+        if (data.accessToken) {
+          localStorage.setItem('token', data.accessToken); 
+        } else if (data.token) {
+          localStorage.setItem('token', data.token);
+        }
+  
         toast.success('เข้าสู่ระบบสำเร็จ!');
-        router.push('/home'); // 8. ไปหน้า Home
+        router.push('/home'); 
       } else {
-        // ถ้า Server ตอบ 401 หรืออื่นๆ (ไม่ผ่าน)
-        const data = await res.json();
         setError(data.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง');
       }
-
     } catch (err) {
-      // 9. ถ้า fetch พัง (เช่น Network ตัด หรือ Backend ไม่ได้รัน)
       setError("ไม่สามารถเชื่อมต่อ Server ได้");
     } finally {
-      setIsLoading(false); // 10. หยุดหมุน (ไม่ว่าจะสำเร็จหรือล้มเหลว)
+      setIsLoading(false);
     }
   };
   
@@ -121,7 +123,7 @@ export default function LoginPage() {
                 
                 {/* ลิงก์ Forgot Password  */}
                 <div className="flex justify-end mt-1 mb-4">
-                    <Link href="/forgotpass">
+                    <Link href="/forgot-password">
                         <span className="text-blue-600 hover:text-blue-800 underline cursor-pointer text-sm">
                             Forgot your password?
                         </span>
