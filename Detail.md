@@ -58,3 +58,4 @@ backend/
 list สิ่งที่ต้องแก้
 - แก้ database มีปัญหาการ reset pass ที่ซ้อนกับการ login หน้าเว็บ กับ google  ทำตารางบอกว่า login เข้ามาด้วยอะไร (pass)
 -แก้ การแยก path การดดเข้่าถึงแบบ private และ public
+- แยกเส้น api แบบที่ public และในเว็บให้ส่ง JWT

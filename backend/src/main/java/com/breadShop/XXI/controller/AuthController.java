@@ -23,6 +23,8 @@ import com.breadShop.XXI.entity.User;
 import com.breadShop.XXI.repository.UserRepository;
 import com.breadShop.XXI.service.AuthService;
 import com.breadShop.XXI.service.GoogleAuthService;
+import com.breadShop.XXI.service.Mailservice;
+
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -32,11 +34,14 @@ public class AuthController {
     private final AuthService authService;
     private final GoogleAuthService googleAuthService;
     private final UserRepository userRepository;
+    private final Mailservice mailservice;
+    
 
-    public AuthController(AuthService authService, GoogleAuthService googleAuthService, UserRepository userRepository) {
+    public AuthController(AuthService authService, GoogleAuthService googleAuthService, UserRepository userRepository,Mailservice mailservice) {
         this.authService = authService;
         this.googleAuthService = googleAuthService;
         this.userRepository = userRepository;
+        this.mailservice = mailservice;
     }
 
     // ------------------ Login ------------------
@@ -45,6 +50,13 @@ public class AuthController {
         System.out.println(loginRequest);
         return authService.loginUser(loginRequest);
 
+    }
+    // ------------------ send OTP ------------------
+    @GetMapping("/test/send-mail")
+    public String sendTestMail(@RequestParam String email) {
+        String otp = "123456"; // OTP ทดสอบ
+        mailservice.sendOtpEmail(email, otp);
+        return "ส่งเมลแล้ว ไปเช็คกล่องจดหมาย";
     }
 
     // ------------------ Register ------------------
