@@ -38,7 +38,7 @@ export default function forgotpassPage() {
       console.log("API_URL raw =", JSON.stringify(API_URL));
 
 
-      const res = await fetch(`${API_URL}/api/v1/auth/checkpassword`, {
+      const res = await fetch(`${API_URL}/api/v1/auth/checkmail`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

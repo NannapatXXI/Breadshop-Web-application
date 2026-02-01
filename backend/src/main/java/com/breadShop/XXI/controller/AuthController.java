@@ -52,11 +52,9 @@ public class AuthController {
 
     }
     // ------------------ send OTP ------------------
-    @GetMapping("/test/send-mail")
-    public String sendTestMail(@RequestParam String email) {
-        String otp = "123456"; // OTP ทดสอบ
-        mailservice.sendOtpEmail(email, otp);
-        return "ส่งเมลแล้ว ไปเช็คกล่องจดหมาย";
+    @PostMapping("/send-OTP-mail")
+    public ResponseEntity<?> sendOtp(@RequestBody CheckEmailRequest emailRequest) {
+        return authService.sendResetPasswordOtp(emailRequest);
     }
 
     // ------------------ Register ------------------
@@ -64,15 +62,15 @@ public class AuthController {
     public ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest) {
         return authService.registerUser(registerRequest);
     }
-     // ------------------ Checkpassword ------------------
-     @PostMapping("/checkpassword")
+     // ------------------ checkmail ------------------
+     @PostMapping("/checkmail")
      public ResponseEntity<?> checkpass(@RequestBody CheckEmailRequest emailRequest) {
        
-        System.out.println("เข้า checkpassword แล้ว: " + emailRequest.email());
+        System.out.println("เข้า checkmail แล้ว: " + emailRequest.email());
         try {
             return authService.checkEmail(emailRequest);
         } catch (Exception e) {
-            e.printStackTrace(); // 🔥 ดู stacktrace เต็ม ๆ
+                    System.out.println("เกิดข้อผิดพลาดใน checkmail: " + e.getMessage());
             throw e;
         }
      }

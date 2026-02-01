@@ -20,9 +20,11 @@ export default function verificationPage() {
   const length = 6; // ความยาวรหัส OTP
   
   const handleSubmitEmail = async () => {
-
+        console.log(otp);
    
   };
+
+
   const handleKeyDown = (index, e) => {
     if (e.key === 'Backspace') {
       e.preventDefault();
@@ -64,10 +66,19 @@ export default function verificationPage() {
     if (value && index < length - 1) {
       if (inputRefs.current[index + 1]) {
         inputRefs.current[index + 1].focus();
-        console.log(otp);
-        console.log("get otp =", otp.join(''));
+       
       }
     }
+   
+    if(newOtp.every(digit => digit !== '')) {
+        console.log("---------------------");
+   
+        console.log("OTP complete:", newOtp.join(''));
+        // You can trigger OTP verification here
+
+    }
+      
+        
   };
 
   const handlePaste = (e) => {
@@ -82,18 +93,20 @@ export default function verificationPage() {
          }
         });
         setOtp(newOtp);
-   
+        
         // Focus on the next empty box or last box
         const nextEmptyIndex = newOtp.findIndex(val => !val);
         const focusIndex = nextEmptyIndex === -1 ? length - 1 : nextEmptyIndex;
         if (inputRefs.current[focusIndex]) {
           inputRefs.current[focusIndex].focus();
         }
+        
   };
 
     const handleFocus = (index) => {
        if (inputRefs.current[index]) {
           inputRefs.current[index].select();
+          
         }
  };
     
@@ -174,6 +187,7 @@ export default function verificationPage() {
                         <button
                             type="button" 
                             //
+                            onClick={handleSubmitEmail}
                             className="
                                 bg-green-600 text-white py-3 px-4 font-bold rounded-lg 
                                 transition duration-150 w-full cursor-pointer hover:bg-green-700 

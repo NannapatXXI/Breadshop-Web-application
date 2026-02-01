@@ -23,7 +23,26 @@ public class Mailservice {
                 "รหัส OTP ของคุณคือ: " + otp +
                 "\nรหัสนี้มีอายุ 5 นาที"
         );
+        System.out.println("กำลังส่ง OTP ไปที่อีเมล: " + to);
 
         mailSender.send(message);
     }
+
+    public void sendWelcomeEmail(String to, String username) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+        message.setSubject("ยินดีต้อนรับสู่ BreadShop XXI!");
+        message.setText(
+                "สวัสดี " + username + "!\n\n" +
+                "ขอบคุณที่สมัครสมาชิกกับเรา เราหวังว่าคุณจะมีประสบการณ์ที่ดีกับการช็อปปิ้งขนมปังและเบเกอรี่ของเรา!\n\n" +
+                "ขอให้มีวันที่ดี!\n" +
+                "ทีมงาน BreadShop XXI"
+        );
+        System.out.println("กำลังส่งอีเมลต้อนรับไปที่: " + to);
+
+        mailSender.send(message);
+    }
+    
+
+
 }

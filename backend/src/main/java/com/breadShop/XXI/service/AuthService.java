@@ -3,7 +3,6 @@ package com.breadShop.XXI.service;
 import java.time.LocalDateTime;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -26,17 +25,41 @@ import com.breadShop.XXI.repository.UserRepository;
 @Service
 public class AuthService {
 
-    @Autowired
-    private UserRepository userRepository;
+   
+    private  final UserRepository userRepository;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    
+    private final PasswordEncoder passwordEncoder;
 
-    @Autowired
-    private AuthenticationManager authenticationManager;
+   
+    private final AuthenticationManager authenticationManager;
 
-    @Autowired
-    private JwtService jwtService;
+   
+    private  final JwtService jwtService;
+
+    private final Mailservice mailservice;
+
+    private final OtpService otpService;
+    
+    public AuthService(
+        UserRepository userRepository,
+        PasswordEncoder passwordEncoder,
+        AuthenticationManager authenticationManager,
+             JwtService jwtService,
+           
+            Mailservice mailservice,
+            OtpService otpService
+    ) {
+        this.passwordEncoder = passwordEncoder;
+        this.authenticationManager = authenticationManager;
+        this.jwtService = jwtService;
+        this.userRepository = userRepository;
+        this.mailservice = mailservice;
+        this.otpService = otpService;
+    }
+
+
+
 
     // ------------------ Register ------------------
     public ResponseEntity<?> registerUser(RegisterRequest request) {
@@ -142,6 +165,25 @@ public class AuthService {
 
         return ResponseEntity.ok(
             Map.of("message", "Email ถูกต้อง")
+        );
+    }
+
+
+     // ------------------ seadOTP ------------------
+     public ResponseEntity<?> sendResetPasswordOtp(CheckEmailRequest request) {
+
+        System.out.println("Email ที่รับมา = " + request.email());
+        if (!userRepository.existsByEmail(request.email())) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponse("ไม่มี Email นี้ ในระบบ"));
+        }
+
+        String otp = otpService.generateOtp(request.email(), "RESET_PASSWORD");
+        mailservice.sendOtpEmail(request.email(), otp);
+
+        return ResponseEntity.ok(
+            Map.of("message", "ส่ง OTP ไปที่ Email เรียบร้อยแล้ว")
         );
     }
 
