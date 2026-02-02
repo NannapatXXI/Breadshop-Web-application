@@ -1,17 +1,17 @@
 package com.breadShop.XXI.service;
 
 import java.security.SecureRandom;
-import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
+import java.util.UUID;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.breadShop.XXI.dto.OtpResult;
 import com.breadShop.XXI.entity.EmailOtp;
 import com.breadShop.XXI.repository.EmailOtpRepository;
+
+import jakarta.transaction.Transactional;
 
 @Service
 public class OtpService {
@@ -28,46 +28,56 @@ public class OtpService {
     }
 
     // ------------------ generate OTP ------------------
-    public String generateOtp(String email, String purpose) {
+   @Transactional
+    public OtpResult generateOtp(String email, String purpose) {
 
         String otp = String.valueOf(
-                100000 + new SecureRandom().nextInt(900000)
+            100000 + new SecureRandom().nextInt(900000)
         );
 
         EmailOtp entity = new EmailOtp();
+        String token = UUID.randomUUID().toString();
+
         entity.setEmail(email);
         entity.setPurpose(purpose);
+        entity.setToken(token);
         entity.setOtpHash(passwordEncoder.encode(otp));
         entity.setExpiresAt(LocalDateTime.now().plusMinutes(5));
+        entity.setUsed(false);
+        entity.setAttemptCount(0);
+       // entity.setCreatedAt(LocalDateTime.now());
 
         otpRepository.save(entity);
 
-        return otp; // ส่ง plain otp กลับไปให้ MailService
+        return new OtpResult(token, otp);
     }
+
 
     // ------------------ verify OTP ------------------
-    public boolean verifyOtp(String email, String purpose, String otpInput) {
-
+    @Transactional
+    public void verifyOtp(String token, String otpInput) {
+    
         EmailOtp otp = otpRepository
-                .findTopByEmailAndPurposeAndUsedFalseOrderByCreatedAtDesc(
-                        email, purpose
-                )
-                .orElseThrow(() -> new RuntimeException("OTP ไม่ถูกต้อง"));
-
+            .findByTokenAndUsedFalse(token)
+            .orElseThrow(() -> new RuntimeException("OTP_NOT_FOUND"));
+    
         if (otp.getExpiresAt().isBefore(LocalDateTime.now())) {
-            otpRepository.delete(otp);
-            throw new RuntimeException("OTP หมดอายุ");
+            otp.setUsed(true);
+            throw new RuntimeException("OTP_EXPIRED");
         }
-
+    
         if (!passwordEncoder.matches(otpInput, otp.getOtpHash())) {
             otp.setAttemptCount(otp.getAttemptCount() + 1);
-            otpRepository.save(otp);
-            throw new RuntimeException("OTP ไม่ถูกต้อง");
+    
+            if (otp.getAttemptCount() >= 5) {
+                otp.setUsed(true);
+                throw new RuntimeException("OTP_LOCKED");
+            }
+    
+            throw new RuntimeException("OTP_INVALID");
         }
-
-        otp.setUsed(true);
-        otpRepository.save(otp);
-
-        return true;
+    
+        otp.setUsed(true); // ✔ success
     }
+    
 }

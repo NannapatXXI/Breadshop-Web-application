@@ -17,8 +17,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.breadShop.XXI.dto.CheckEmailRequest;
+import com.breadShop.XXI.dto.ErrorResponse;
 import com.breadShop.XXI.dto.LoginRequest;
 import com.breadShop.XXI.dto.RegisterRequest;
+import com.breadShop.XXI.dto.VerifyOtpRequest;
 import com.breadShop.XXI.entity.User;
 import com.breadShop.XXI.repository.UserRepository;
 import com.breadShop.XXI.service.AuthService;
@@ -53,9 +55,43 @@ public class AuthController {
     }
     // ------------------ send OTP ------------------
     @PostMapping("/send-OTP-mail")
-    public ResponseEntity<?> sendOtp(@RequestBody CheckEmailRequest emailRequest) {
-        return authService.sendResetPasswordOtp(emailRequest);
+    public ResponseEntity<?> sendOtp(@RequestBody CheckEmailRequest request) {
+        try {
+            String token = authService.sendResetPasswordOtp(request.email());
+    
+            return ResponseEntity.ok(
+                Map.of(
+                    "message", "ส่ง OTP เรียบร้อย",
+                    "token", token
+                )
+            );
+    
+        } catch (IllegalArgumentException e) {
+            if ("EMAIL_NOT_FOUND".equals(e.getMessage())) {
+                return ResponseEntity
+                        .badRequest()
+                        .body(new ErrorResponse("ไม่พบ Email ในระบบ"));
+            }
+            throw e;
+        }
     }
+     // ------------------ verify OTP ------------------
+    @PostMapping("/verify-otp")
+    public ResponseEntity<?> verifyOtp(@RequestBody VerifyOtpRequest request) {
+
+    String token = authService.verifyOtp(
+        request.token(),
+        request.otp()
+    );
+
+    return ResponseEntity.ok(
+        Map.of(
+            "message", "OTP ถูกต้อง",
+            "token", token
+        )
+    );
+}
+     
 
     // ------------------ Register ------------------
     @PostMapping("/register")
@@ -63,6 +99,7 @@ public class AuthController {
         return authService.registerUser(registerRequest);
     }
      // ------------------ checkmail ------------------
+     /* 
      @PostMapping("/checkmail")
      public ResponseEntity<?> checkpass(@RequestBody CheckEmailRequest emailRequest) {
        
@@ -73,7 +110,7 @@ public class AuthController {
                     System.out.println("เกิดข้อผิดพลาดใน checkmail: " + e.getMessage());
             throw e;
         }
-     }
+     }*/
 
     // ------------------ Google Login URL ------------------
     // endpoint ให้ frontend รับ URL

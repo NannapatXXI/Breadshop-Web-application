@@ -7,6 +7,7 @@ import {useState,   // เก็บ state (ข้อมูลที่เปล�
  } from "react";
 
 import styles from "./page.module.css";
+import { useSearchParams } from "next/navigation";
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast'; // (เราจะใช้ toast แจ้งเตือน)
 
@@ -18,9 +19,31 @@ export default function verificationPage() {
   const [otp, setOtp] = useState(Array(6).fill(''));
   const inputRefs = useRef([]);
   const length = 6; // ความยาวรหัส OTP
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token");
   
+  console.log("Token from URL:", token);
   const handleSubmitEmail = async () => {
-        console.log(otp);
+    const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+    const res = await fetch(`${API_URL}/api/v1/auth/verify-otp`,  {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token,
+          otp: otp.join("")
+        })
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.message || "OTP ไม่ถูกต้อง");
+      }
+      console.log(otp);
+      router.push(`/reset-password?token=${data.token}`);
+       
+        
    
   };
 
@@ -183,7 +206,8 @@ export default function verificationPage() {
                             </div>
                          
                           
-                        <a href="/forgot-password"  className="col-span-3 mt-1"> 
+                        
+                        <div className="col-span-3 mt-1">
                         <button
                             type="button" 
                             //
@@ -196,7 +220,8 @@ export default function verificationPage() {
                         >
                             Sead 
                         </button>
-                        </a>
+                      
+                        </div>
                     </div>
                     
             </form>

@@ -38,7 +38,7 @@ export default function forgotpassPage() {
       console.log("API_URL raw =", JSON.stringify(API_URL));
 
 
-      const res = await fetch(`${API_URL}/api/v1/auth/checkmail`, {
+      const res = await fetch(`${API_URL}/api/v1/auth/send-OTP-mail`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -53,7 +53,11 @@ export default function forgotpassPage() {
       }
   
       toast.success("ส่งอีเมลสำเร็จ");
-      router.push("/verify-email");
+      console.log("FULL RESPONSE =", data);
+      console.log("typeof data =", typeof data);
+      console.log("token from backend:", data.token);
+
+      router.push(`/verify-email?token=${data.token}`);
   
     } catch (err) {
       toast.error(err.message || "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้");

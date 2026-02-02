@@ -26,6 +26,8 @@ public class EmailOtp {
 
     private boolean used = false;
 
+    private String token;
+
     private int attemptCount = 0;
 
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -48,7 +50,14 @@ public class EmailOtp {
     public void setExpiresAt(LocalDateTime expiresAt) {
         this.expiresAt = expiresAt;
     }
+   
+    public void setToken(String token) {
+        this.token = token;
+    }
 
+    public String getToken() {
+        return token;
+    }
     public Long getId() {
         return id;
     }

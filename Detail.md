@@ -8,7 +8,7 @@ list สิ่งที่ต้องแก้
 -แก้ การแยก path การดดเข้่าถึงแบบ private และ public
 - แยกเส้น api แบบที่ public และในเว็บให้ส่ง JWT
 - แก้ auth control ให้อะไรที่ยุ่งเกี่ยวกับข้อมูลเอามาไว้ใน auth sevice
-
+-แก้ auth service ไม่ใช้ ResponseEntity ให้ auth controller เป็นคนคืน HTTP ไป
 
 
 list debug
