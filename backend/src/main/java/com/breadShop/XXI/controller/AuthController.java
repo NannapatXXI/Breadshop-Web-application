@@ -20,6 +20,7 @@ import com.breadShop.XXI.dto.CheckEmailRequest;
 import com.breadShop.XXI.dto.ErrorResponse;
 import com.breadShop.XXI.dto.LoginRequest;
 import com.breadShop.XXI.dto.RegisterRequest;
+import com.breadShop.XXI.dto.ResetPasswordRequest;
 import com.breadShop.XXI.dto.VerifyOtpRequest;
 import com.breadShop.XXI.entity.User;
 import com.breadShop.XXI.repository.UserRepository;
@@ -89,6 +90,14 @@ public class AuthController {
             "message", "OTP ถูกต้อง",
             "token", token
         )
+    );
+}
+// ------------------ reset password ------------------
+@PostMapping("/reset-password")
+public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
+    authService.resetPassword(request.token(), request.newPassword());
+    return ResponseEntity.ok(
+        Map.of("message", "Password reset successfully")
     );
 }
      

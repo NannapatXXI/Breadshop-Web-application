@@ -172,7 +172,13 @@ public class AuthService {
             Map.of("message", "Email ถูกต้อง")
         );
     }
-
+     // ------------------ resetPassword ------------------
+     @Transactional
+     public void resetPassword(String token, String newPassword) {
+ 
+        
+     }
+ 
 
      // ------------------ seadOTP ------------------
     @Transactional
