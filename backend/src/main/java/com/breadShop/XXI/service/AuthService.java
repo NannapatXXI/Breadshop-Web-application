@@ -1,7 +1,6 @@
 package com.breadShop.XXI.service;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -104,7 +103,7 @@ public class AuthService {
         );
 
         
-
+        mailService.sendWelcomeEmail(request.email(), request.username());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new AuthenticationResponse(token, user.getUsername(), user.getEmail()));
     }
@@ -152,35 +151,50 @@ public class AuthService {
         return ResponseEntity.ok(new AuthenticationResponse(jwtToken, user.getUsername(), user.getEmail()));
     }
     // ------------------ checkEmail ------------------
-    public ResponseEntity<?> checkEmail(CheckEmailRequest request) {
+    public void checkEmail(CheckEmailRequest request) {
 
         if (request.email() == null || request.email().isEmpty()) {
-            return ResponseEntity
-                    .badRequest()
-                    .body(new ErrorResponse("Email ไม่ควรเป็นค่าว่าง"));
+            throw new IllegalArgumentException("Email ไม่ควรเป็นค่าว่าง");
         }
 
         System.out.println("Email ที่รับมา = " + request.email());
 
         if (userRepository.findByEmail(request.email()).isEmpty()) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body(new ErrorResponse("ไม่มี Email นี้ ในระบบ"));
+            throw new IllegalArgumentException("ไม่มี Email นี้ ในระบบ");
+           
         }
 
-        return ResponseEntity.ok(
-            Map.of("message", "Email ถูกต้อง")
-        );
+       
     }
+
+
      // ------------------ resetPassword ------------------
+    /**
+     * ใช้ตอน reset password เพื่อเอา password ใหม่ไปเก็บใน DB และจะมีการเปลี่ยนสถานะ token เป็นใช้แล้ว
+     * @param token เอา token ไปค้นหา email ที่เกี่ยวข้อง
+     * @param newPassword รหัสผ่านใหม่ที่ผู้ใช้ต้องการตั้งที่เช็คเงื่อนไขแล้วจาก frontend 
+     */
      @Transactional
      public void resetPassword(String token, String newPassword) {
- 
+        String email = otpService.validateResetToken(token);
+         
+        System.out.println(" eamil ที่ ตรงกับ token ที่ส่งเข้ามา :"+email);
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new RuntimeException("USER_NOT_FOUND"));
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+
+        otpService.invalidateToken(token);
         
      }
  
 
      // ------------------ seadOTP ------------------
+     /**
+      * ใช้ตอนส่ง OTP เพื่อ reset password
+      * @param email mail ที่จะส่ง OTP เพื่อใช้ reset password
+      * @return คืนค่า token ที่ใช้ระบุ OTP ที่สร้างขึ้น
+      */
     @Transactional
     public String sendResetPasswordOtp(String email) {
 
@@ -200,6 +214,12 @@ public class AuthService {
 
 
      // ------------------ verify OTP ------------------
+     /**
+      * ใช้ตอน verify OTP
+      * @param token เอา token ไปค้นหารหัส OTP ที่เก็บไว้
+      * @param otp รหัส OTP ที่ผู้ใช้กรอกมา
+      * @return คืนค่า token เดิมกลับไป
+      */
      @Transactional
     public String verifyOtp(String token ,String otp) {
 

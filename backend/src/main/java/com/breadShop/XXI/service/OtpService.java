@@ -54,6 +54,11 @@ public class OtpService {
 
 
     // ------------------ verify OTP ------------------
+    /**
+     * ใช้ตอน verify OTP โดยจะเช็คว่า OTP ถูกต้องไหม หมดอายุหรือยัง และเกินจำนวนครั้งที่พยายามใส่ OTP ไหม
+     * @param token เอา token ไปค้นหารหัส OTP ที่เก็บไว้
+     * @param otpInput รหัส OTP ที่ผู้ใช้กรอกมา
+     */
     @Transactional
     public void verifyOtp(String token, String otpInput) {
     
@@ -77,7 +82,40 @@ public class OtpService {
             throw new RuntimeException("OTP_INVALID");
         }
     
-        otp.setUsed(true); // ✔ success
+        otp.setVerified(true); // ✔ success
     }
     
+     // ------------------ invalidate Token ------------------
+     /**
+      * ใช้ตอน reset password เพื่อเช็คว่า token นี้ถูกต้องไหม และเช็คส่า token นี้ผ่านการ verify OTP มาแล้วหรือยัง และหมดเวลาไปแล้วหรือยัง
+      * @param token
+      * @return เมลล์ที่เกี่ยวข้องกับ OTP นี้กลับไปเป็น String
+      */
+    @Transactional
+    public String validateResetToken(String token) {
+
+        EmailOtp otp = otpRepository
+            .findByTokenAndUsedFalse(token)
+            .orElseThrow(() -> new RuntimeException("TOKEN_INVALID"));
+
+        if (!otp.isVerified()) {
+            throw new RuntimeException("OTP_NOT_VERIFIED");
+        }
+
+        if (otp.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("TOKEN_EXPIRED");
+        }
+
+        return otp.getEmail();
+    }
+    // ------------------ invalidate Token ------------------
+    /**
+     * ใช้หลังจาก reset password สำเร็จ เพื่อบอกว่า token นี้ใช้แล้ว
+     * @param token  เป็น string ที่ใช้ในการระบุ OTP ที่ต้องการจะ บอกว่าใช้ไปแล้ว
+     */
+    @Transactional
+    public void invalidateToken(String token) {
+        otpRepository.findByTokenAndUsedTrue(token)
+            .ifPresent(otp -> otp.setUsed(true));
+    }
 }

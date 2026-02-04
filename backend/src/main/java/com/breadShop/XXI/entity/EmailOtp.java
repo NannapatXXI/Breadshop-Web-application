@@ -2,6 +2,7 @@ package com.breadShop.XXI.entity;
 
 import java.time.LocalDateTime;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -24,7 +25,11 @@ public class EmailOtp {
 
     private LocalDateTime expiresAt;
 
+    
     private boolean used = false;
+
+    @Column(nullable = false)
+    private boolean verified = false;
 
     private String token;
 
@@ -32,6 +37,9 @@ public class EmailOtp {
 
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    public void setVerified(boolean verified) {
+        this.verified = verified;
+    }
     public void setUsed(boolean b) {
         this.used = b;
     }
@@ -57,6 +65,9 @@ public class EmailOtp {
 
     public String getToken() {
         return token;
+    }
+    public boolean isVerified() {
+        return verified;
     }
     public Long getId() {
         return id;

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import toast from 'react-hot-toast';
 import Link from 'next/link';
+import { useSearchParams } from "next/navigation";
 // 1. Import useRouter ที่ขาดไป
 
 import { useRouter } from 'next/navigation';
@@ -16,12 +17,14 @@ export default function RegisterPage() {
     // 2. เรียกใช้ useRouter เพื่อสร้างตัวแปร router ที่ขาดไป
     const router = useRouter();
 
+    const searchParams = useSearchParams();
+    const token = searchParams.get("token");
+
+    console.log("Token from verify page:", token);
     // (States และ Logic ทั้งหมดเหมือนเดิม)
     const [focusedField, setFocusedField] = useState(null); 
     const [error, setError] = useState(""); 
-    const [username, setUsername] = useState("");
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
+    const [newPassword, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -39,42 +42,33 @@ export default function RegisterPage() {
        
         e.preventDefault(); 
         setError(""); 
-        console.log("Submitting registration:", { username, email, password, confirmPassword });
+        console.log("Submitting registration:", { token, newPassword });
         // (Validation Logic ทั้งหมดเหมือนเดิม)
-        if (!username || !email || !password || !confirmPassword) {
+        if ( !newPassword || !confirmPassword) {
             setError("กรุณากรอกข้อมูลให้ครบทุกช่อง");
             return;
         }
-        const usernameRegex = /^[a-zA-Z0-9]+$/; 
-        if (username.length < 4 || username.length > 20 || !usernameRegex.test(username)) {
-            setError(infoMessages.username);
-            return;
-        }
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            setError(infoMessages.email);
-            return;
-        }
-        const hasNumberOrSymbol = /\d/.test(password) || /[^a-zA-Z0-9]/.test(password);
-        if (password.length < 6 || !hasNumberOrSymbol) {
+        const hasNumberOrSymbol = /\d/.test(newPassword) || /[^a-zA-Z0-9]/.test(newPassword);
+        if (newPassword.length < 6 || !hasNumberOrSymbol) {
             setError(infoMessages.password);
             return;
         }
-        if (password !== confirmPassword) {
+        if (newPassword !== confirmPassword) {
             setError(infoMessages.confirmPassword);
             return;
         }
 
         setIsLoading(true);
+        
         try {
-            // 5. ดึง URL ของ Backend จากตัวแปร (ตามที่เราคุยกัน)
+            
             const API_URL = process.env.NEXT_PUBLIC_API_URL;
-            console.log("📡 Full fetch URL:", `${API_URL}/api/v1/auth/register`);
-            // 6. ยิง fetch ไปที่ Backend ของคุณ
-            const res = await fetch(`${API_URL}/api/v1/auth/register`, { 
+          
+           
+            const res = await fetch(`${API_URL}/api/v1/auth/reset-password`, { 
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({username, email, password }),
+              body: JSON.stringify({token, newPassword}),
             });
       
             // 7. ตรวจสอบคำตอบจาก Server
@@ -129,7 +123,7 @@ export default function RegisterPage() {
                             <input
                                 type={showPassword ? "text" : "password"}
                                 placeholder="••••••••"
-                                value={password}
+                                value={newPassword}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
                                 {...inputFocusProps('password')} 

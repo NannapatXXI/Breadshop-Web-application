@@ -4,6 +4,10 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.breadShop.XXI.entity.EmailOtp;
 
@@ -20,4 +24,9 @@ public interface EmailOtpRepository extends JpaRepository<EmailOtp, Long> {
 
    // cleanup OTP หมดอายุ
    void deleteByExpiresAtBefore(LocalDateTime time);
+
+   @Modifying
+    @Transactional
+    @Query("DELETE FROM EmailOtp e WHERE e.expiresAt < :now")
+    int deleteExpired(@Param("now") LocalDateTime now);
 }
