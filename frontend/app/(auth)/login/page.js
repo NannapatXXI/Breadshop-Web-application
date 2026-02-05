@@ -59,7 +59,8 @@ export default function LoginPage() {
       });
   
       const data = await res.json(); // ต้องอ่าน json ก่อนเพื่อเอา Token
-  
+       
+      console.log("FULL RESPONSE =", data);
       if (res.ok) {
         // 1. เก็บ Token ลงใน localStorage (สมมติว่า Backend ส่ง field ชื่อ accessToken หรือ token)
         if (data.accessToken) {

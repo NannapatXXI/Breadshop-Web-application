@@ -1,23 +1,18 @@
 package com.breadShop.XXI.service;
 
-import java.time.LocalDateTime;
-
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.breadShop.XXI.dto.AuthenticationResponse;
 import com.breadShop.XXI.dto.CheckEmailRequest;
-import com.breadShop.XXI.dto.ErrorResponse;
 import com.breadShop.XXI.dto.LoginRequest;
 import com.breadShop.XXI.dto.OtpResult;
 import com.breadShop.XXI.dto.RegisterRequest;
+import com.breadShop.XXI.entity.RefreshToken;
 import com.breadShop.XXI.entity.User;
 import com.breadShop.XXI.repository.EmailOtpRepository;
 import com.breadShop.XXI.repository.UserRepository;
@@ -36,7 +31,7 @@ public class AuthService {
 
    
     private final AuthenticationManager authenticationManager;
-
+    private final RefreshTokenService refreshTokenService;
    
     private  final JwtService jwtService;
 
@@ -51,7 +46,8 @@ public class AuthService {
              JwtService jwtService,
              EmailOtpRepository otpRepository,
             Mailservice mailService,
-            OtpService otpService
+            OtpService otpService,
+            RefreshTokenService refreshTokenService
     ) {
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
@@ -60,96 +56,72 @@ public class AuthService {
         this.mailService = mailService;
         this.otpService = otpService;
         this.otpRepository = otpRepository;
+        this.refreshTokenService = refreshTokenService;
     }
 
 
 
+    //อาจจะต้องมาแก้ ยังไม่ได้ test bug
+    public void registerUser(RegisterRequest request) {
 
-    // ------------------ Register ------------------
-    public ResponseEntity<?> registerUser(RegisterRequest request) {
-
-        // ตรวจสอบซ้ำ
         if (userRepository.existsByUsername(request.username())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new ErrorResponse("Username นี้ถูกใช้ไปแล้ว"));
+            throw new IllegalArgumentException("USERNAME_EXISTS");
         }
+    
         if (userRepository.existsByEmail(request.email())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new ErrorResponse("Email นี้ถูกใช้ไปแล้ว"));
+            throw new IllegalArgumentException("EMAIL_EXISTS");
         }
-
-        // สร้าง User ใหม่
+    
         User user = new User(
                 request.username(),
                 request.email(),
                 passwordEncoder.encode(request.password())
         );
-
+    
+        user.setRole("USER"); // 👈 สำคัญ
+    
         userRepository.save(user);
-       
-
-        String role = user.getRole();
-        if (role == null || role.isBlank()) {
-            role = "USER";
-        }
-        role = role.toUpperCase();
-
-        String token = jwtService.generateToken(
-            org.springframework.security.core.userdetails.User
-                .withUsername(user.getEmail())
-                .password(user.getPassword())
-                .roles(role)   // ชัวร์สุด
-                .build()
-        );
-
-        
+    
         mailService.sendWelcomeEmail(request.email(), request.username());
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new AuthenticationResponse(token, user.getUsername(), user.getEmail()));
     }
+    
 
     // ------------------ Login ------------------
-    public ResponseEntity<?> loginUser(LoginRequest request) {
-         // หา user จาก DB โดยลอง username ก่อน ถ้าไม่เจอให้ลอง email
-        User user = userRepository.findByUsername(request.usernameOrEmail())
-        .or(() -> userRepository.findByEmail(request.usernameOrEmail()))
-        .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+    /**
+     * เอาไว้รับ login request แล้วส่ง token กลับไป โดยจะตรวจสอบ username กับ password ผ่าน AuthenticationManager 
+     * @param request รับ LoginRequest ที่มี usernameOrEmail กับ password
+     * @return ส่ง token ,username , email กลับไป
+     */
+    public AuthenticationResponse loginUser(LoginRequest request) {
 
-        // ไม่ต้อง try-catch ทั่วไป เพื่อดู error จริง
         Authentication authentication = authenticationManager.authenticate(
-
-            new UsernamePasswordAuthenticationToken(
+                new UsernamePasswordAuthenticationToken(
+                        request.usernameOrEmail(),
+                        request.password()
+                )
+        );
+    
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+    
+        User user = userRepository
+                .findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("USER_NOT_FOUND"));
+    
+        // 1. access token (อายุสั้น)
+        String accessToken = jwtService.generateToken(userDetails);
+    
+        // 2. refresh token (อายุยาว + save DB)
+        RefreshToken refreshToken = refreshTokenService.create(user);
+    
+        return new AuthenticationResponse(
+                accessToken,
+                refreshToken.getToken(),
                 user.getUsername(),
-                request.password()
-            )
+                user.getEmail()
         );
-         // เก็บ Authentication ไว้ใน SecurityContext
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-    
-      
-        // อัปเดตเวลาล็อกอินล่าสุด
-        user.setLastLoginAt(LocalDateTime.now());
-        
-        userRepository.save(user);
-    
-        // สร้าง JWT token
-        String role = user.getRole();
-        if (role == null || role.isBlank()) {
-            role = "USER";
-        }
-        role = role.toUpperCase();
-
-        String jwtToken = jwtService.generateToken(
-            org.springframework.security.core.userdetails.User
-                .withUsername(user.getEmail())
-                .password(user.getPassword())
-                .roles(role)   // ชัวร์สุด
-                .build()
-        );
-
-    
-        return ResponseEntity.ok(new AuthenticationResponse(jwtToken, user.getUsername(), user.getEmail()));
     }
+    
+
     // ------------------ checkEmail ------------------
     public void checkEmail(CheckEmailRequest request) {
 

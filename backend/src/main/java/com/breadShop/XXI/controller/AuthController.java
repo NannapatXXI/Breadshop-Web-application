@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.breadShop.XXI.dto.AuthenticationResponse;
 import com.breadShop.XXI.dto.CheckEmailRequest;
 import com.breadShop.XXI.dto.ErrorResponse;
 import com.breadShop.XXI.dto.LoginRequest;
@@ -47,13 +49,35 @@ public class AuthController {
         this.mailservice = mailservice;
     }
 
-    // ------------------ Login ------------------
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
-        System.out.println(loginRequest);
-        return authService.loginUser(loginRequest);
 
+        AuthenticationResponse tokens = authService.loginUser(loginRequest);
+
+        // access token cookie
+        ResponseCookie accessCookie = ResponseCookie.from("access_token", tokens.accessToken())
+                .httpOnly(true)
+                .secure(false) // true เมื่อขึ้น https
+                .path("/")
+                .maxAge(15 * 60)
+                .sameSite("Lax")
+                .build();
+
+        // refresh token cookie
+        ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", tokens.refreshToken())
+                .httpOnly(true)
+                .secure(false)
+                .path("/api/v1/auth")
+                .maxAge(7 * 24 * 60 * 60)
+                .sameSite("Lax")
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                .body(Map.of("message", "login success"));
     }
+
     // ------------------ send OTP ------------------
     @PostMapping("/send-OTP-mail")
     public ResponseEntity<?> sendOtp(@RequestBody CheckEmailRequest request) {
@@ -105,7 +129,12 @@ public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request
     // ------------------ Register ------------------
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest) {
-        return authService.registerUser(registerRequest);
+        authService.registerUser(registerRequest);
+
+        return ResponseEntity.ok(
+        Map.of("message", "Register successfully")
+    );
+        
     }
      // ------------------ checkmail ------------------
      /* 

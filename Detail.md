@@ -14,3 +14,6 @@ list สิ่งที่ต้องแก้
 list debug
 -เวลาในการเข้าถึงรหัส OTP
 -การกด enter เข้าหน้าต่างๆแทนการกดปุ่ม เช่น หน้า forgotpass
+
+next-step
+-ทำเรื่อง token กับ cookie ให้เสร็จ แล้วก็เส้น Api และการจัดการ exception ต่างๆ

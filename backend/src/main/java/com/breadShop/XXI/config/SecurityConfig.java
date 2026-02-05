@@ -92,9 +92,19 @@ public class SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
             .authorizeHttpRequests(auth -> auth
+                // preflight
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+    
+                // ---------- Public ----------
                 .requestMatchers("/api/v1/auth/**").permitAll()
-                .requestMatchers("/api/v1/user/**").hasAuthority("ROLE_USER")
+    
+                // ---------- User ----------
+                .requestMatchers("/api/v1/users/**").hasRole("USER")
+    
+                // ---------- Admin ----------
+                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+    
+                // ---------- Others ----------
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider())
@@ -102,6 +112,7 @@ public class SecurityConfig {
     
         return http.build();
     }
+    
     
 
 }
