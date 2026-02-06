@@ -9,7 +9,10 @@ import com.breadShop.XXI.entity.RefreshToken;
 import com.breadShop.XXI.entity.User;
 import com.breadShop.XXI.repository.RefreshTokenRepository;
 
-
+/*
+accessToken  → ใช้เรียก API
+refreshToken → ใช้ขอ access ใหม่
+*/
 @Service
 public class RefreshTokenService {
 

@@ -4,6 +4,7 @@
 import { useEffect } from 'react'; // 1. Import useEffect
 import { useCart } from '../../CartContext';
 import { useAuth } from '../../context/AuthContext'; 
+import { getMe } from "@/services/auth.service";
 
 export default function HomePage() {
   
@@ -17,6 +18,7 @@ export default function HomePage() {
     // ดึง Token จาก LocalStorage
     const token = localStorage.getItem('token');
     
+    
     console.log("=========== DEBUG LOGIN ===========");
     console.log("Token:", token);      // ดูค่า Token
     console.log("User:", user);        // ดูค่า User จาก Context
@@ -25,10 +27,24 @@ export default function HomePage() {
   }, [user, loading]); // ให้ทำงานใหม่เมื่อ user หรือ loading เปลี่ยนแปลง
 
 
-  const handleTestClick = () => {
-    addToCart();
-    // แถม: เช็ค Token ตอนกดปุ่มด้วยก็ได้
-    console.log("Token ขณะกดปุ่ม:", localStorage.getItem('token'));
+  const handleTestClick = async () => {
+    //addToCart();
+   
+
+    try {
+      
+      const res = await getMe();
+      console.log(res.data);
+  
+      if (!res.ok) {
+        throw new Error(res.data.message || "ไม่สามารถส่ง Email ได้");
+      }
+  
+    } catch (err) {
+     
+    } finally {
+     
+    }
   };
 
   return (

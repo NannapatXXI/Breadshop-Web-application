@@ -4,9 +4,11 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.breadShop.XXI.Util.CookieUtil;
 import com.breadShop.XXI.dto.AuthenticationResponse;
 import com.breadShop.XXI.dto.CheckEmailRequest;
 import com.breadShop.XXI.dto.LoginRequest;
@@ -17,6 +19,7 @@ import com.breadShop.XXI.entity.User;
 import com.breadShop.XXI.repository.EmailOtpRepository;
 import com.breadShop.XXI.repository.UserRepository;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 
 //สำหรับการสมัครผ่านหน้าเว็บ
@@ -32,7 +35,7 @@ public class AuthService {
    
     private final AuthenticationManager authenticationManager;
     private final RefreshTokenService refreshTokenService;
-   
+    private final UserDetailsService userDetailsService;
     private  final JwtService jwtService;
 
     private final Mailservice mailService;
@@ -47,7 +50,8 @@ public class AuthService {
              EmailOtpRepository otpRepository,
             Mailservice mailService,
             OtpService otpService,
-            RefreshTokenService refreshTokenService
+            RefreshTokenService refreshTokenService,
+            UserDetailsService userDetailsService
     ) {
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
@@ -57,9 +61,23 @@ public class AuthService {
         this.otpService = otpService;
         this.otpRepository = otpRepository;
         this.refreshTokenService = refreshTokenService;
+        this.userDetailsService = userDetailsService;
     }
 
+    public  String refreshAccessToken(HttpServletRequest request){
 
+         String refreshToken = CookieUtil.getCookie(
+            request, "refresh_token"
+        ).orElseThrow(() -> new RuntimeException("NO_REFRESH_TOKEN"));
+
+        RefreshToken rt = refreshTokenService.validate(refreshToken);
+        User user = rt.getUser();
+
+        UserDetails userDetails =
+        userDetailsService.loadUserByUsername(user.getEmail());
+
+        return  jwtService.generateToken(userDetails) ;
+    }
 
     //อาจจะต้องมาแก้ ยังไม่ได้ test bug
     public void registerUser(RegisterRequest request) {

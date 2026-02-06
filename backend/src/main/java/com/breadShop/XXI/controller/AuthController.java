@@ -9,7 +9,6 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -30,16 +29,18 @@ import com.breadShop.XXI.service.AuthService;
 import com.breadShop.XXI.service.GoogleAuthService;
 import com.breadShop.XXI.service.Mailservice;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 
 @RestController
 @RequestMapping("/api/v1/auth")
-@CrossOrigin(origins = "http://localhost:3000") 
 public class AuthController {
 
     private final AuthService authService;
     private final GoogleAuthService googleAuthService;
     private final UserRepository userRepository;
     private final Mailservice mailservice;
+   
     
 
     public AuthController(AuthService authService, GoogleAuthService googleAuthService, UserRepository userRepository,Mailservice mailservice) {
@@ -47,6 +48,40 @@ public class AuthController {
         this.googleAuthService = googleAuthService;
         this.userRepository = userRepository;
         this.mailservice = mailservice;
+       
+    }
+
+    // ------------------ Refresh Token ------------------
+    /**
+     * เอาไว้ให้ refresh access token
+     * @param request 
+     * @return
+     */
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(HttpServletRequest request) {
+
+       String newAccessToken = authService.refreshAccessToken(request);
+
+        ResponseCookie accessCookie = ResponseCookie
+            .from("access_token", newAccessToken)
+            .httpOnly(true)
+            .path("/")
+            .maxAge(15 * 60)
+            .build();
+
+        return ResponseEntity.ok()
+            .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+            .body(Map.of("message", "refreshed"));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<?> me(@AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(
+            Map.of(
+                "email", userDetails.getUsername(),
+                "roles", userDetails.getAuthorities()
+            )
+        );
     }
 
     @PostMapping("/login")

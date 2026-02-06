@@ -92,21 +92,36 @@ public class SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
             .authorizeHttpRequests(auth -> auth
-                // preflight
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-    
-                // ---------- Public ----------
-                .requestMatchers("/api/v1/auth/**").permitAll()
-    
-                // ---------- User ----------
-                .requestMatchers("/api/v1/users/**").hasRole("USER")
-    
-                // ---------- Admin ----------
-                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-    
-                // ---------- Others ----------
-                .anyRequest().authenticated()
-            )
+
+            // preflight
+            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+        
+            // ---------- Public ----------
+            .requestMatchers(
+                "/api/v1/auth/login",
+                "/api/v1/auth/register",
+                "/api/v1/auth/refresh",
+                "/api/v1/auth/google/**",
+                "/api/v1/auth/send-OTP-mail",
+                "/api/v1/auth/verify-otp",
+                "/api/v1/auth/reset-password"
+            ).permitAll()
+        
+            // ---------- Auth required ----------
+            .requestMatchers(
+                "/api/v1/auth/me",
+                "/api/v1/auth/profile"
+            ).authenticated()
+        
+            // ---------- User ----------
+            .requestMatchers("/api/v1/users/**").hasRole("USER")
+        
+            // ---------- Admin ----------
+            .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+        
+            // ---------- Others ----------
+            .anyRequest().authenticated()
+        )
             .authenticationProvider(authenticationProvider())
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
     

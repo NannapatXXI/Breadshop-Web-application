@@ -54,20 +54,15 @@ export default function LoginPage() {
 
       const res = await fetch(`${API_URL}/api/v1/auth/login`, {
         method: 'POST',
+        credentials: "include",
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usernameOrEmail: email, password }),
       });
   
       const data = await res.json(); // ต้องอ่าน json ก่อนเพื่อเอา Token
        
-      console.log("FULL RESPONSE =", data);
+     
       if (res.ok) {
-        // 1. เก็บ Token ลงใน localStorage (สมมติว่า Backend ส่ง field ชื่อ accessToken หรือ token)
-        if (data.accessToken) {
-          localStorage.setItem('token', data.accessToken); 
-        } else if (data.token) {
-          localStorage.setItem('token', data.token);
-        }
   
         toast.success('เข้าสู่ระบบสำเร็จ!');
         router.push('/home'); 
