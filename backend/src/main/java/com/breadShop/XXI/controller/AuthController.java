@@ -94,7 +94,7 @@ public class AuthController {
                 .httpOnly(true)
                 .secure(false) // true เมื่อขึ้น https
                 .path("/")
-                .maxAge(15 * 60)
+                .maxAge(15 * 60) //access token อยู่ได้ 15 นาที
                 .sameSite("Lax")
                 .build();
 

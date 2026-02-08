@@ -1,4 +1,5 @@
 import axios from "axios"; //ใช้สำหรับ:ดัก 401 ,refresh token ,retry request
+import Router from "next/router";
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
@@ -16,18 +17,24 @@ api.interceptors.response.use(
     ) {
       return Promise.reject(err);
     }
+    // ถ้า 401 และยังไม่เคย refresh → ลอง refresh
+    if (originalRequest.url.includes("/auth/refresh")) {
+        return Promise.reject(err);
+    }
 
     originalRequest._retry = true;
 
     try {
-      // 🔁 เรียก backend refresh
+
       await api.post("/api/v1/auth/refresh");
 
+      // Debugging log
+     console.log("Token refreshed successfully");
       // 🔁 retry request เดิม
       return api(originalRequest);
     } catch (e) {
       // refresh พัง → logout
-      window.location.href = "/login";
+      Router.push("/login");
       return Promise.reject(e);
     }
   }

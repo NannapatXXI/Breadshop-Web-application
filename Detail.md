@@ -3,6 +3,10 @@ Service = logic
 Repository = DB
 MailService = ส่งเมลอย่างเดียว
 
+
+accessToken อายุ 15 นาที
+refresh token  อายุ 7 วัน หมด = logout
+
 list สิ่งที่ต้องแก้
 - แก้ database มีปัญหาการ reset pass ที่ซ้อนกับการ login หน้าเว็บ กับ google  ทำตารางบอกว่า login เข้ามาด้วยอะไร (pass)
 -แก้ การแยก path การดดเข้่าถึงแบบ private และ public
@@ -18,3 +22,7 @@ list debug
 next-step
 -ทำเรื่อง token กับ cookie ให้เสร็จ แล้วก็เส้น Api และการจัดการ exception ต่างๆ
 -แก้เส้น Api หน้าเว็บให้ไปร่วมกันเพื่อให้รู้ว่า token หมดอายุ
+
+
+Successful
+- accessToken refresh token  cookie เสร็จแล้ว
