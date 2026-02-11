@@ -4,7 +4,8 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { useSearchParams } from "next/navigation";
-// 1. Import useRouter ที่ขาดไป
+import { resetPassword } from "@/services/auth.service";
+
 
 import { useRouter } from 'next/navigation';
 
@@ -62,35 +63,29 @@ export default function RegisterPage() {
         
         try {
             
-            const API_URL = process.env.NEXT_PUBLIC_API_URL;
-          
+            const payload = {
+                token :token ,
+                newPassword: newPassword,
+              };
+            await resetPassword(payload);
            
-            const res = await fetch(`${API_URL}/api/v1/auth/reset-password`, { 
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({token, newPassword}),
-            });
-      
-            // 7. ตรวจสอบคำตอบจาก Server
-            if (res.ok) {
-
-              // ถ้า Server ตอบ 200 (สำเร็จ)
-              toast.success('ลงทะเบียนสำเร็จ! กำลังกลับไปหน้า Login...');
+              toast.success('เปลี่ยนรหัสผ่านแล้ว!!!  กำลังกลับไปหน้า Login...');
               setTimeout(() => {
                 router.push('/login');
               }, 1500);
 
-            } else {
-              // ถ้า Server ตอบ 401 หรืออื่นๆ (ไม่ผ่าน)
-              const data = await res.json();
-              setError(data.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง');
-            }
-      
+        
           } catch (err) {
-            // 9. ถ้า fetch พัง (เช่น Network ตัด หรือ Backend ไม่ได้รัน)
-            setError("ไม่สามารถเชื่อมต่อ Server ได้");
+            
+              const message =
+              err?.response?.data?.message ??
+              err?.message ??
+              "เกิดข้อผิดพลาดในระบบ";
+          
+            setError(message);
+           
           } finally {
-            setIsLoading(false); // 10. หยุดหมุน (ไม่ว่าจะสำเร็จหรือล้มเหลว)
+            setIsLoading(false);
           }
     };
 

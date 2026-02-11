@@ -4,6 +4,7 @@ import { useState } from "react";
 import styles from "./page.module.css";
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast'; // (เราจะใช้ toast แจ้งเตือน)
+import { sendOTPEmail } from "@/services/auth.service";
 
 export default function forgotpassPage() {
   const [email, setEmail] = useState("");
@@ -34,33 +35,26 @@ export default function forgotpassPage() {
     setError("");
   
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL;
-      console.log("API_URL raw =", JSON.stringify(API_URL));
+      const payload = {
+        email: email,
+      };
 
-
-      const res = await fetch(`${API_URL}/api/v1/auth/send-OTP-mail`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email: trimmedEmail }),
-      });
-  
-      const data = await res.json();
-  
-      if (!res.ok) {
-        throw new Error(data.message || "ไม่สามารถส่ง Email ได้");
-      }
+      
+      const res = await sendOTPEmail(payload);
   
       toast.success("ส่งอีเมลสำเร็จ");
-      console.log("FULL RESPONSE =", data);
-      console.log("typeof data =", typeof data);
-      console.log("token from backend:", data.token);
-
-      router.push(`/verify-email?token=${data.token}`);
+     
+      router.push(`/verify-email?token=${res.data.token}&email=${encodeURIComponent(email)}`);
   
     } catch (err) {
-      toast.error(err.message || "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้");
+      
+        const message =
+        err?.response?.data?.message ??
+        err?.message ??
+        "เกิดข้อผิดพลาดในระบบ";
+    
+      setError(message);
+     
     } finally {
       setIsLoading(false);
     }

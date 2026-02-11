@@ -1,6 +1,7 @@
 package com.breadShop.XXI.config;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.NonNull;
@@ -86,9 +87,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
     
-        return path.equals("/api/v1/auth/login")
-            || path.equals("/api/v1/auth/register")
-            || path.equals("/api/v1/auth/refresh");
+        return List.of(
+            "/api/v1/auth/login",
+            "/api/v1/auth/register",
+            "/api/v1/auth/refresh",
+            "/api/v1/auth/send-OTP-mail",
+            "/api/v1/auth/verify-otp",
+            "/api/v1/auth/reset-password"
+        ).contains(path);
     }
     
     private String getAccessTokenFromCookie(HttpServletRequest request) {

@@ -3,8 +3,7 @@ import { useState } from "react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import toast from 'react-hot-toast';
 import Link from 'next/link';
-// 1. Import useRouter ที่ขาดไป
-
+import { register } from "@/services/auth.service";
 import { useRouter } from 'next/navigation';
 
 // (ClassNames เหมือนเดิม)
@@ -40,6 +39,7 @@ export default function RegisterPage() {
         e.preventDefault(); 
         setError(""); 
         console.log("Submitting registration:", { username, email, password, confirmPassword });
+        
         // (Validation Logic ทั้งหมดเหมือนเดิม)
         if (!username || !email || !password || !confirmPassword) {
             setError("กรุณากรอกข้อมูลให้ครบทุกช่อง");
@@ -64,39 +64,30 @@ export default function RegisterPage() {
             setError(infoMessages.confirmPassword);
             return;
         }
-
+        
         setIsLoading(true);
         try {
-            // 5. ดึง URL ของ Backend จากตัวแปร (ตามที่เราคุยกัน)
-            const API_URL = process.env.NEXT_PUBLIC_API_URL;
-            console.log("📡 Full fetch URL:", `${API_URL}/api/v1/auth/register`);
-            // 6. ยิง fetch ไปที่ Backend ของคุณ
-            const res = await fetch(`${API_URL}/api/v1/auth/register`, { 
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({username, email, password }),
-            });
-      
-            // 7. ตรวจสอบคำตอบจาก Server
-            if (res.ok) {
+            const payload = {
+                username :username ,
+                email: email,
+                password: password
+              };
 
-              // ถ้า Server ตอบ 200 (สำเร็จ)
-              toast.success('ลงทะเบียนสำเร็จ! กำลังกลับไปหน้า Login...');
-              setTimeout(() => {
+            await register(payload);
+            toast.success('ลงทะเบียนสำเร็จ! กำลังกลับไปหน้า Login...');
+           
                 router.push('/login');
-              }, 1500);
-
-            } else {
-              // ถ้า Server ตอบ 401 หรืออื่นๆ (ไม่ผ่าน)
-              const data = await res.json();
-              setError(data.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง');
-            }
       
-          } catch (err) {
-            // 9. ถ้า fetch พัง (เช่น Network ตัด หรือ Backend ไม่ได้รัน)
-            setError("ไม่สามารถเชื่อมต่อ Server ได้");
+        } catch (err) {
+            if (err.response) {
+              // backend ตอบ error (401, 404)
+              setError(err.response.data?.message || "Login ไม่สำเร็จ");
+            } else {
+              // network error
+              setError("ไม่สามารถเชื่อมต่อ Server ได้");
+            }
           } finally {
-            setIsLoading(false); // 10. หยุดหมุน (ไม่ว่าจะสำเร็จหรือล้มเหลว)
+            setIsLoading(false);
           }
     };
 

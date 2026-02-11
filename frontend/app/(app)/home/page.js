@@ -35,7 +35,7 @@ export default function HomePage() {
     }
   }, []);
 
-  // 🔹 บันทึกลง localStorage ทุกครั้งที่ mail เปลี่ยน
+  // บันทึกลง localStorage ทุกครั้งที่ mail เปลี่ยน
   useEffect(() => {
     localStorage.setItem("test_mail", mail);
   }, [mail]);
@@ -88,8 +88,7 @@ export default function HomePage() {
         ทดสอบ (กดเพื่อเพิ่มสินค้า & Log Token)
       </button>
 
-      <input type="text" placeholder="Test Input" value={mail}
-        onChange={(e) => setMail(e.target.value)} className="mt-4 p-2 border border-gray-300 rounded-lg" />
+      <input type="text" placeholder="Test Input"  value={mail} onChange={(e) => setMail(e.target.value)} className="mt-4 p-2 border border-gray-300 rounded-lg" />
     </div>
   );
 }

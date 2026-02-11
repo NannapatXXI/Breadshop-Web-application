@@ -1,10 +1,15 @@
 import axios from "axios"; //ใช้สำหรับ:ดัก 401 ,refresh token ,retry request
 import Router from "next/router";
 
+// สร้าง axios instance ที่ตั้งค่าเริ่มต้น
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
   withCredentials: true, // ส่ง cookie ไป backend
 });
+
 
 api.interceptors.response.use(
   (res) => res,
@@ -30,7 +35,7 @@ api.interceptors.response.use(
 
       // Debugging log
      console.log("Token refreshed successfully");
-      // 🔁 retry request เดิม
+      //  retry request เดิม
       return api(originalRequest);
     } catch (e) {
       // refresh พัง → logout

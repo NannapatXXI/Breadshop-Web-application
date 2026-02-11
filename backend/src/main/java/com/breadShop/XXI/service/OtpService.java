@@ -82,7 +82,8 @@ public class OtpService {
             throw new RuntimeException("OTP_INVALID");
         }
     
-        otp.setVerified(true); // ✔ success
+        otp.setVerified(true); 
+        otp.setUsed(true);
     }
     
      // ------------------ invalidate Token ------------------
@@ -115,7 +116,7 @@ public class OtpService {
      */
     @Transactional
     public void invalidateToken(String token) {
-        otpRepository.findByTokenAndUsedTrue(token)
+        otpRepository.findByTokenAndUsedFalse(token)
             .ifPresent(otp -> otp.setUsed(true));
     }
 }

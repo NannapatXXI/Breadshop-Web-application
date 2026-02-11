@@ -123,7 +123,7 @@ public class AuthService {
     
         User user = userRepository
                 .findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("USER_NOT_FOUND"));
+                .orElseThrow(() -> new IllegalArgumentException("USER_NOT_FOUND"));
     
         // 1. access token (อายุสั้น)
         String accessToken = jwtService.generateToken(userDetails);
@@ -188,9 +188,9 @@ public class AuthService {
     @Transactional
     public String sendResetPasswordOtp(String email) {
 
-        if (!userRepository.existsByEmail(email)) {
-            throw new IllegalArgumentException("EMAIL_NOT_FOUND");
-        }
+        User user = userRepository.findByEmail(email)
+        .orElseThrow(() -> new IllegalArgumentException("EMAIL_NOT_FOUND"));
+
 
         otpRepository.deleteByEmailAndPurposeAndUsedFalse(
             email, "RESET_PASSWORD"
@@ -212,10 +212,17 @@ public class AuthService {
       */
      @Transactional
     public String verifyOtp(String token ,String otp) {
+    
+        try {
+            otpService.verifyOtp(token, otp);
+            System.out.println("Otp ที่ได้รับมา = " + otp);
+        } catch (Exception e) {
+            System.out.println("เกิดข้อผิดพลาดในการ verify OTP: " + e.getMessage());
+                throw new IllegalArgumentException(e.getMessage());
+           
+        }
 
-
-        otpService.verifyOtp(token, otp);
-        System.out.println("Otp ที่ได้รับมา = " + otp);
+       
 
 
         return token;

@@ -4,6 +4,7 @@ import { useState } from "react";
 import styles from "./page.module.css";
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast'; // (เราจะใช้ toast แจ้งเตือน)
+import { login } from "@/services/auth.service";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -11,7 +12,7 @@ export default function LoginPage() {
   const [error, setError] = useState(""); 
   const [isLoading, setIsLoading] = useState(false); // 1. เพิ่ม State สำหรับ Loading
   const router = useRouter();
-
+  
  
   
   const handleGoogleLogin = async () => {
@@ -47,30 +48,24 @@ export default function LoginPage() {
       setIsLoading(false); 
       return;
     }
-
+   
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL;
-      console.log("API_URL raw =", JSON.stringify(API_URL));
-
-      const res = await fetch(`${API_URL}/api/v1/auth/login`, {
-        method: 'POST',
-        credentials: "include",
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ usernameOrEmail: email, password }),
-      });
-  
-      const data = await res.json(); // ต้องอ่าน json ก่อนเพื่อเอา Token
-       
-     
-      if (res.ok) {
-  
+      const payload = {
+        usernameOrEmail: email,
+        password: password,
+      };
+       await login(payload);
         toast.success('เข้าสู่ระบบสำเร็จ!');
         router.push('/home'); 
-      } else {
-        setError(data.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง');
-      }
+     
     } catch (err) {
-      setError("ไม่สามารถเชื่อมต่อ Server ได้");
+      if (err.response) {
+        // backend ตอบ error (401, 404)
+        setError(err.response.data?.message || "Login ไม่สำเร็จ");
+      } else {
+        // network error
+        setError("ไม่สามารถเชื่อมต่อ Server ได้");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -172,7 +167,7 @@ export default function LoginPage() {
                 <p className="text-sm text-gray-700 mr-1">
                     Don't have an account? 
                 </p>
-                <Link href="/Register">
+                <Link href="/register">
                     <span className="text-blue-600 hover:text-blue-800 underline cursor-pointer text-sm font-medium">
                         Sign up.
                     </span>

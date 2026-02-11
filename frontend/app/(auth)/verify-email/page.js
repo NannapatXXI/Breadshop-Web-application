@@ -10,42 +10,52 @@ import styles from "./page.module.css";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast'; // (เราจะใช้ toast แจ้งเตือน)
+import { verifyOTP } from "@/services/auth.service";
+import { sendOTPEmail } from "@/services/auth.service";
 
 export default function verificationPage() {
-  const [email, setEmail] = useState("");
   const [error, setError] = useState(""); 
   const [isLoading, setIsLoading] = useState(false); // 1. เพิ่ม State สำหรับ Loading
   const router = useRouter();
   const [otp, setOtp] = useState(Array(6).fill(''));
   const inputRefs = useRef([]);
   const length = 6; // ความยาวรหัส OTP
+  const [token, setToken] = useState(null);
   const searchParams = useSearchParams();
-  const token = searchParams.get("token");
-  
-  console.log("Token from URL:", token);
-  const handleSubmitEmail = async () => {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-    const res = await fetch(`${API_URL}/api/v1/auth/verify-otp`,  {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token,
-          otp: otp.join("")
-        })
-      });
-      
-      const data = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(data.message || "OTP ไม่ถูกต้อง");
-      }
-      console.log(otp);
-      router.push(`/reset-password?token=${data.token}`);
-       
+  
+ const email = searchParams.get("email");
+  
+    useEffect(() => {
+        const t = searchParams.get("token");
+        setToken(t);
+    }, [searchParams]);
+
+
+
+  const handleSubmitEmail = async () => {
+    try {
+        const payload = {
+            token : token,
+            otp: otp.join("")
+        }
+        const res = await verifyOTP(payload)
+        router.push(`/reset-password?token=${res.data.token}`);
         
-   
-  };
+    } catch (err) {
+        const message =
+        err?.response?.data?.message ??
+        err?.message ??
+        "เกิดข้อผิดพลาดในระบบ";
+    
+      setError(message);
+     
+    } finally {
+      setIsLoading(false);
+    }
+ };
+  
+
 
 
   const handleKeyDown = (index, e) => {
@@ -97,7 +107,9 @@ export default function verificationPage() {
         console.log("---------------------");
    
         console.log("OTP complete:", newOtp.join(''));
-        // You can trigger OTP verification here
+        
+        console.log("---------------------");
+      
 
     }
       
@@ -132,7 +144,34 @@ export default function verificationPage() {
           
         }
  };
-    
+    const seadOTP = async() => {
+        try {
+            const payload = {
+                email : email,
+                
+            }
+            const res = await sendOTPEmail(payload);
+            const newToken = res.data.token;
+           
+            router.replace(
+                `/verify-email?token=${newToken}&email=${encodeURIComponent(email)}`
+              );
+            setToken(newToken);
+            setOtp(Array(6).fill("")); // ล้างช่อง OTP
+            toast.success("ส่ง OTP ใหม่เรียบร้อย");
+
+        } catch (err) {
+            const message =
+            err?.response?.data?.message ??
+            err?.message ??
+            "เกิดข้อผิดพลาดในระบบ";
+        
+          setError(message);
+         
+        } finally {
+          setIsLoading(false);
+        }
+     };
   
   
   
@@ -142,8 +181,10 @@ export default function verificationPage() {
     <div className={styles.controls}>
         <div className={styles.container}>
             <div className={styles.controlsHead} >
-                <h1 className="text-xl font-bold text-gray-700 mb-1">กรอกรหัสใน เมล</h1>
-                <h1 className="text-s font-normal text-gray-700 mb-10">กรอกรหัส ของคุณเพื่อรับลิงก์สำหรับตั้งรหัสผ่านใหม่</h1>
+                <h1 className="text-xl font-bold text-gray-700 mb-1">Verify Email </h1>
+                <h1 className="text-s font-normal text-gray-700 mb-1">Enter your OTP for reset password </h1>
+                <h1 className="text-s font-normal text-gray-700 mb-10">Sead to  {email}</h1>
+                
             </div>
             
 
@@ -152,8 +193,8 @@ export default function verificationPage() {
                 
            
             
-            <div className="flex justify-center gap-3 mb-6">
-                <div className="flex justify-center gap-3 mb-6">
+            <div className="flex justify-center gap-3 mt-10">
+                <div className="flex justify-center gap-3 mb-1">
                 {otp.map((digit, index) => (
                 <input
                 key={index}
@@ -188,8 +229,23 @@ export default function verificationPage() {
                 )}
                 
                
-                <div className="grid grid-cols-4 gap-0 mt-5 pt-4"> 
-                       
+                <div className="grid grid-cols-4 gap-0 mt-1 pt-4"> 
+                        <div className="col-span-4 flex justify-center mt-1 mb-4">
+
+                                <span
+                                    onClick={seadOTP}
+                                    className="
+                                    text-sm font-normal
+                                    inline-flex whitespace-nowrap
+                                    text-gray-700 underline cursor-pointer
+                                    hover:text-blue-800
+                                    "
+                                >
+                                    Resend OTP
+                                </span>
+                        </div>
+
+
                         <div className="col-span-1 mr-2">
                             <button
                                 type="button" 
@@ -210,7 +266,7 @@ export default function verificationPage() {
                         <div className="col-span-3 mt-1">
                         <button
                             type="button" 
-                            //
+                            // seadOTP
                             onClick={handleSubmitEmail}
                             className="
                                 bg-green-600 text-white py-3 px-4 font-bold rounded-lg 
@@ -218,10 +274,11 @@ export default function verificationPage() {
                                 col-span-3
                             "
                         >
-                            Sead 
+                            Sead OTP
                         </button>
                       
                         </div>
+                       
                     </div>
                     
             </form>

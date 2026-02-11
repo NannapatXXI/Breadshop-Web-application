@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.breadShop.XXI.dto.AuthenticationResponse;
 import com.breadShop.XXI.dto.CheckEmailRequest;
-import com.breadShop.XXI.dto.ErrorResponse;
 import com.breadShop.XXI.dto.LoginRequest;
 import com.breadShop.XXI.dto.RegisterRequest;
 import com.breadShop.XXI.dto.ResetPasswordRequest;
@@ -116,7 +115,7 @@ public class AuthController {
     // ------------------ send OTP ------------------
     @PostMapping("/send-OTP-mail")
     public ResponseEntity<?> sendOtp(@RequestBody CheckEmailRequest request) {
-        try {
+       
             String token = authService.sendResetPasswordOtp(request.email());
     
             return ResponseEntity.ok(
@@ -126,14 +125,6 @@ public class AuthController {
                 )
             );
     
-        } catch (IllegalArgumentException e) {
-            if ("EMAIL_NOT_FOUND".equals(e.getMessage())) {
-                return ResponseEntity
-                        .badRequest()
-                        .body(new ErrorResponse("ไม่พบ Email ในระบบ"));
-            }
-            throw e;
-        }
     }
      // ------------------ verify OTP ------------------
     @PostMapping("/verify-otp")
@@ -143,6 +134,7 @@ public class AuthController {
         request.token(),
         request.otp()
     );
+    System.out.println("ผ่านการ verify OTP แล้ว ได้ token สำหรับ reset password: " + token);
 
     return ResponseEntity.ok(
         Map.of(
