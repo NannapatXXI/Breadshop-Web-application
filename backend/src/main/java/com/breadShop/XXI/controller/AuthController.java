@@ -189,32 +189,28 @@ public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request
     @GetMapping("/google/callback")
     public ResponseEntity<?> callback(@RequestParam("code") String code) {
         try {
-            System.out.println("1. ได้รับ Code จาก Google: " + code); // Log 1
-
-            // แลก Code เป็น Token
             String jwt = googleAuthService.handleGoogleCallback(code);
-            System.out.println("2. แลก Token สำเร็จ: " + jwt); // Log 2
-
-            // เตรียม URL ปลายทาง 
-            String redirectUrl = "http://localhost:3000/google/callback?token=" + jwt;
-            
-            // สร้าง Header สั่ง Redirect
+    
+            ResponseCookie accessCookie = ResponseCookie.from("access_token", jwt)
+                    .httpOnly(true)
+                    .secure(false)
+                    .path("/")
+                    .maxAge(15 * 60)
+                    .sameSite("Lax")
+                    .build();
+    
             HttpHeaders headers = new HttpHeaders();
-            headers.setLocation(URI.create(redirectUrl));
-            
-            // ส่งกลับสถานะ 302 FOUND (บังคับ Browser ย้ายหน้า)
+            headers.add(HttpHeaders.SET_COOKIE, accessCookie.toString());
+            headers.setLocation(URI.create("http://localhost:3000/home"));
+    
             return new ResponseEntity<>(headers, HttpStatus.FOUND);
-
+    
         } catch (Exception e) {
-            // ถ้าพัง ให้ปริ้น Error ออกมาดูที่ Console
-            System.err.println("เกิดข้อผิดพลาด!!!");
-           // e.printStackTrace();
-            
-            // ส่ง Error กลับไปบอก Frontend (จะได้ไม่โหลดไฟล์ว่างๆ)
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                                 .body("Login Error: " + e.getMessage());
+                    .body("Login Error: " + e.getMessage());
         }
     }
+    
 
      @GetMapping("/profile")
     public ResponseEntity<?> getProfile(@AuthenticationPrincipal UserDetails userDetails) {

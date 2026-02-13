@@ -51,7 +51,9 @@ public class GoogleAuthService {
         return "https://accounts.google.com/o/oauth2/auth?client_id="
                 + clientId
                 + "&redirect_uri=" + redirectUri
-                + "&response_type=code&scope=email%20profile";
+                + "&response_type=code&scope=email%20profile"+
+                "&prompt=select_account" ;
+                
     }
 
     public String handleGoogleCallback(String code) {

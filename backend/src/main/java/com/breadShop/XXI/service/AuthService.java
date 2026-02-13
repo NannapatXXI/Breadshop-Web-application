@@ -176,6 +176,7 @@ public class AuthService {
 
         otpService.invalidateToken(token);
         
+        
      }
  
 
@@ -221,9 +222,6 @@ public class AuthService {
                 throw new IllegalArgumentException(e.getMessage());
            
         }
-
-       
-
 
         return token;
     }

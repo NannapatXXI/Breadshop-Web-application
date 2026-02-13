@@ -81,9 +81,10 @@ public class OtpService {
     
             throw new RuntimeException("OTP_INVALID");
         }
-    
-        otp.setVerified(true); 
-        otp.setUsed(true);
+        System.out.println("Before verify - used: " + otp.isUsed());
+        otp.setVerified(true);
+        System.out.println("After verify - used: " + otp.isUsed());
+        
     }
     
      // ------------------ invalidate Token ------------------

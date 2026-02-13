@@ -4,42 +4,21 @@
 // 1. Import เครื่องมือที่จำเป็น
 import { useState } from 'react';
 import { useCart } from '../../../CartContext'; 
+import { useEffect } from 'react';
+
 import { FaPlus, FaTrash, FaEdit } from 'react-icons/fa'; 
 
-// (ข้อมูลสินค้าเริ่มต้น - เหมือนเดิม)
-const initialProducts = [
-  {
-    id: 1,
-    name: "เสื้อยืด Cotton Premium",
-    price: 299,
-    stock: 50,
-    icon: "👕",
-    description: "เสื้อยืดคอตตอน 100% นุ่มสบาย ระบายอากาศดี"
-  },
-  {
-    id: 2,
-    name: "กางเกงยีนส์",
-    price: 890,
-    stock: 30,
-    icon: "👖",
-    description: "กางเกงยีนส์ทรงสวย ผ้าคุณภาพดี ใส่สบาย"
-  },
-  {
-    id: 3,
-    name: "รองเท้าผ้าใบ",
-    price: 1590,
-    stock: 20,
-    icon: "👟",
-    description: "รองเท้าผ้าใบสไตล์สปอร์ต น้ำหนักเบา"
-  }
-];
+
 
 // (เริ่ม Component - เหมือนเดิม)
 export default function ProductPage() {
 
   // (States ทั้งหมด - เหมือนเดิม)
+  const [imageFile, setImageFile] = useState(null);
+  const [preview, setPreview] = useState(null);
+
   const { addToCart } = useCart(); 
-  const [products, setProducts] = useState(initialProducts); 
+  const [products, setProducts] = useState([]); 
   const [isAdminMode, setIsAdminMode] = useState(false); 
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
@@ -47,24 +26,79 @@ export default function ProductPage() {
   const [icon, setIcon] = useState('');
   const [description, setDescription] = useState('');
 
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+  
+  const fetchProducts = async () => {
+    try {
+      const res = await fetch('http://localhost:8080/api/v1/admin/products', {
+        credentials: 'include', // สำคัญถ้าใช้ cookie auth
+      });
+  
+      const data = await res.json();
+      setProducts(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  
   // (Logic Functions - เหมือนเดิม)
-  const handleAddProduct = (e) => {
-    e.preventDefault(); 
+  const handleAddProduct = async (e) => {
+    e.preventDefault();
+  
     if (!name || !price || !stock) {
       alert('กรุณากรอก ชื่อ, ราคา, และจำนวน');
       return;
     }
-    const newProduct = {
-      id: Date.now(), 
-      name,
-      price: parseFloat(price),
-      stock: parseInt(stock),
-      icon: icon || '🎁',
-      description: description || 'ไม่มีรายละเอียด'
-    };
-    setProducts([newProduct, ...products]); // (แก้ให้เพิ่มด้านบนสุด)
-    
-    setName(''); setPrice(''); setStock(''); setIcon(''); setDescription('');
+  
+    const formData = new FormData();
+    formData.append("image", imageFile);
+    formData.append("name", name);
+    formData.append("price", price);
+    formData.append("stock", stock);
+    formData.append("description", description);
+    formData.append("category", "BREAD"); // ใส่ enum ให้ตรงกับ backend
+    formData.append("expiryDate", "2026-12-31");
+  
+    try {
+      const res = await fetch('http://localhost:8080/api/v1/admin/products', {
+        method: "POST",
+        body: formData,
+        credentials: "include"
+      });
+  
+      if (!res.ok) throw new Error("สร้างสินค้าไม่สำเร็จ");
+  
+      const newProduct = await res.json();
+  
+      setProducts(prev => [newProduct, ...prev]);
+  
+      setName('');
+      setPrice('');
+      setStock('');
+      setDescription('');
+      setImageFile(null);
+      setPreview(null);
+  
+    } catch (err) {
+      console.error(err);
+      alert("เกิดข้อผิดพลาด");
+    }
+  };
+  
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setImageFile(file);
+
+    // สร้าง preview
+    const imageUrl = URL.createObjectURL(file);
+    setPreview(imageUrl);
   };
 
   const handleDeleteProduct = (id) => {
@@ -203,7 +237,12 @@ export default function ProductPage() {
                  className="bg-white rounded-lg shadow border overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
               
               <div className="h-48 flex items-center justify-center text-6xl bg-gray-100">
-                {product.icon}
+              <img 
+                  src={product.imageUrl} 
+                  alt={product.name}
+                  className="h-full w-full object-cover"
+                />
+
               </div>
               
               <div className="p-4">

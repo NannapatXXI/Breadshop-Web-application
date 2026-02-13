@@ -69,7 +69,7 @@ export default function HomePage() {
       {/* แสดงชื่อ User ถ้า Login แล้ว (ตัวอย่างการใช้) */}
       {user && (
         <p className="text-green-600 font-medium">
-           สวัสดีคุณ: {user.username || user.email}
+           สวัสดีคุณ: {user.username || user.email || user.roles}
         </p>
       )}
 
