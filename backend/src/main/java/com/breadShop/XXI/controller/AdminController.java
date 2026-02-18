@@ -30,7 +30,7 @@ public class AdminController {
     }
 
    
-    @PostMapping(value = "/Add-products" ,consumes = "multipart/form-data")
+    @PostMapping(value = "/add-products" ,consumes = "multipart/form-data")
     public ResponseEntity<Product> createProduct(
             @RequestParam String name,
             @RequestParam Double price,
@@ -55,7 +55,7 @@ public class AdminController {
     }
 
     // ==============================
-    // 📦 GET ALL PRODUCTS
+    // 📦 GET ALL PRODUCTS  
     // ==============================
     @GetMapping("/products")
     public ResponseEntity<List<ProductResponse>> getAllProducts() {

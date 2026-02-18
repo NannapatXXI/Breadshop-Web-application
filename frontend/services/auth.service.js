@@ -3,6 +3,9 @@ import api from "@/lib/api";
 export const getMe = () => {
   return api.get("/api/v1/auth/me");
 };
+export const profile = () => {
+  return api.get("/api/v1/auth/profile");
+};
 export const login = (credentials) => {
   return api.post("/api/v1/auth/login", credentials);
 };
@@ -20,4 +23,10 @@ export const verifyOTP = (data) => {
 export const resetPassword = (data) => {
   return api.post("/api/v1/auth/reset-password", data);
 };
+
+export const getproduct = () => {
+  return api.get("/api/v1/admin/products");
+};
+
+
 

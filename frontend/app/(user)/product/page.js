@@ -3,18 +3,18 @@
 
 // 1. Import เครื่องมือที่จำเป็น
 import { useState } from 'react';
-import { useCart } from '../../../CartContext'; 
+import { useCart } from '../../CartContext'; 
 import { useEffect } from 'react';
 
 import { FaPlus, FaTrash, FaEdit } from 'react-icons/fa'; 
-
+import { getproduct } from "@/services/auth.service";
 
 
 // (เริ่ม Component - เหมือนเดิม)
 export default function ProductPage() {
 
   // (States ทั้งหมด - เหมือนเดิม)
-  const [imageFile, setImageFile] = useState(null);
+  const [imageFile, setImage] = useState(null);
   const [preview, setPreview] = useState(null);
 
   const { addToCart } = useCart(); 
@@ -32,13 +32,26 @@ export default function ProductPage() {
   }, []);
   
   const fetchProducts = async () => {
+
     try {
-      const res = await fetch('http://localhost:8080/api/v1/admin/products', {
-        credentials: 'include', // สำคัญถ้าใช้ cookie auth
-      });
+      
+      const res = await getproduct();
+      console.log(res.data);
+
+      setProducts(res.data);
   
-      const data = await res.json();
-      setProducts(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handlegetproduct = async () => {
+  
+    try {
+      
+      const res = await getproduct();
+      console.log(res.data);
+  
     } catch (err) {
       console.error(err);
     }
@@ -143,7 +156,7 @@ export default function ProductPage() {
 
       {/* ส่วนสลับโหมด (Mode Toggle) + ปุ่มเทส */}
       {/* (ผมครอบด้วย flex-wrap เพื่อให้ปุ่มตกบรรทัดได้ในจอมือถือ) */}
-      <div className="flex flex-wrap gap-4 mb-6 items-center">
+      <div className="flex flex-wrap gap-4 mb-6 items-center  border-4 border-red-500 ">
         
         {/* (ปุ่มสลับโหมด - เหมือนเดิม) */}
         <div className="inline-flex bg-gray-100 p-1 rounded-lg">
@@ -180,13 +193,23 @@ export default function ProductPage() {
         </button>
         {/* ^ ^ ^ สิ้นสุดปุ่มใหม่ ^ ^ ^ */}
 
+        <button
+          onClick={handlegetproduct}
+          className="
+            px-4 py-2 bg-purple-500 text-white 
+            font-semibold rounded-lg shadow-md 
+            hover:bg-purple-600 transition duration-150
+          "
+        >
+          🧪 test Api
+        </button>
       </div>
 
       {/* (Panel Admin - เหมือนเดิม) */}
       {isAdminMode && (
-        <div className="bg-gray-50 p-6 rounded-lg border-2 border-dashed border-gray-300 mb-8">
+        <div className="bg-gray-50 p-6 rounded-lg border-2 border-dashed border-gray-300 mb-8 ">
           <h3 className="text-lg font-bold text-gray-800 mb-4">➕ เพิ่มสินค้าใหม่</h3>
-          <form onSubmit={handleAddProduct} className="space-y-4">
+          <form onSubmit={handleAddProduct} className="space-y-4 border-4 border-red-500">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">ชื่อสินค้า *</label>
@@ -205,7 +228,7 @@ export default function ProductPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">ไอคอน Emoji</label>
-                <input type="text" value={icon} onChange={e => setIcon(e.target.value)} placeholder="🎁"
+                <input  type="file"onChange={(e) => setImage(e.target.files[0])} required
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
               </div>
               <div className="md:col-span-2">
@@ -236,14 +259,14 @@ export default function ProductPage() {
             <div key={product.id} 
                  className="bg-white rounded-lg shadow border overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
               
-              <div className="h-48 flex items-center justify-center text-6xl bg-gray-100">
-              <img 
-                  src={product.imageUrl} 
+              <div className="h-48 flex items-center justify-center bg-gray-100">
+                <img 
+                  src={`http://localhost:8080/${product.imageUrl}`} 
                   alt={product.name}
                   className="h-full w-full object-cover"
                 />
-
               </div>
+
               
               <div className="p-4">
                 <h3 className="text-lg font-bold text-gray-800 truncate">{product.name}</h3>

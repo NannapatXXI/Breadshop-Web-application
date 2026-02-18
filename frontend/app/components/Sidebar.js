@@ -1,11 +1,16 @@
 // components/Sidebar.js
+
 import Link from 'next/link';
+import { useAuth } from "../context/AuthContext";
 // 1. Import ไอคอน Home, Cog, SignOut, และ "Times" (ปุ่ม X)
 import { FaHome, FaCog, FaSignOutAlt, FaTimes } from 'react-icons/fa';
 import { VscArchive } from "react-icons/vsc";
 
+
 // 2. รับ props 'isOpen' และ 'setIsOpen'
 export default function Sidebar({ isOpen, setIsOpen }) {
+  const { user, loading } = useAuth();
+  console.log("Sidebar User:", user);
   return (
     // 3. เพิ่ม/แก้ไข ClassName ให้ Responsive
     <div 
@@ -35,7 +40,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           Home
         </Link>
 
-        <Link href="/home/product" className="flex items-center p-2 rounded-lg hover:bg-gray-700">
+        <Link href="/product" className="flex items-center p-2 rounded-lg hover:bg-gray-700">
             <VscArchive className="mr-3" />
           Product
         </Link>
@@ -49,6 +54,20 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             <VscArchive className="mr-3" />
           Profile
         </Link>
+        {/* ADMIN เห็น */}
+          {user?.roles?.some(r => r.authority === "ROLE_ADMIN")&& (
+            <>
+              <Link href="/admin/dashbord" className="flex items-center p-2 rounded-lg hover:bg-gray-700">
+                <VscArchive className="mr-3" />
+                Manage dashbord
+              </Link>
+
+              <Link href="/admin/products" className="flex items-center p-2 rounded-lg hover:bg-gray-700">
+                <FaCog className="mr-3" />
+                Manage Product
+              </Link>
+            </>
+          )}
 
       </nav>
 

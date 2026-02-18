@@ -2,10 +2,12 @@
 import { FaBars, FaTrash } from 'react-icons/fa'; // 1. Import ไอคอน Hamburger และ "ถังขยะ"
 import { MdShoppingCart } from 'react-icons/md'; // 2. Import ไอคอน "ตะกร้า"
 import { useCart } from '../CartContext'; // 3. Import "ทางลัด" (Hook)
-
+import { useAuth } from "../context/AuthContext";
 export default function Navbar({ setIsOpen }) {
   // 4. ดึง State และฟังก์ชันจาก "สมอง"
   const { cartCount, clearCart } = useCart();
+  const { user, loading } = useAuth();
+  console.log("Navbar User:" ,user?.username);
 
   return (
     <nav className="h-16 bg-white shadow-md flex items-center justify-between px-6">
@@ -23,7 +25,7 @@ export default function Navbar({ setIsOpen }) {
       
       {/* V V V 5. ส่วนตะกร้าและปุ่มลบ V V V */}
       <div className="flex items-center space-x-4">
-        <span className="text-gray-600 hidden md:block">Welcome, User!</span>
+        <span className="text-gray-600 hidden md:block">Welcome, {user?.username}</span>
 
         {/* ปุ่มลบ */}
         <button 

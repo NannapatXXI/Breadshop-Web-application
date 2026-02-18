@@ -26,9 +26,10 @@ export const AuthProvider = ({ children }) => {
       return;
     }
 
-    api.get("/api/v1/auth/me")
+    const  res = api.get("/api/v1/auth/me") 
       .then(res => setUser(res.data))
       .catch(() => {
+        console.log("ไม่พบผู้ใช้, กำลังไปหน้า Login");
         setUser(null);
         router.push("/login");
       })

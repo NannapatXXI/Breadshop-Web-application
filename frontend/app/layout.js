@@ -6,6 +6,7 @@ import { Toaster } from 'react-hot-toast';
 
 // 1. Import AuthProvider (แก้ Path ให้ถูกตามที่คุณวางไฟล์)
 import { AuthProvider } from "./context/AuthContext"; 
+
 // import { CartProvider } from "./CartContext"; // (เดาว่าคุณน่าจะมี CartProvider ด้วย)
 
 const inter = Inter({ subsets: ["latin"] });

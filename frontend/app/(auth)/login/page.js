@@ -4,7 +4,7 @@ import { useState } from "react";
 import styles from "./page.module.css";
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast'; // (เราจะใช้ toast แจ้งเตือน)
-import { login } from "@/services/auth.service";
+import { login,profile } from "@/services/auth.service";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -55,8 +55,12 @@ export default function LoginPage() {
         password: password,
       };
        await login(payload);
+
+       const res = await profile(); // ดึงข้อมูลโปรไฟล์
+      
+        router.push('/home'); // ไปหน้า Home หลัง Login สำเร็จ
         toast.success('เข้าสู่ระบบสำเร็จ!');
-        router.push('/home'); 
+        
      
     } catch (err) {
       if (err.response) {
