@@ -20,7 +20,7 @@ export default function Navbar({ setIsOpen }) {
           <FaBars size={20} />
         </button>
 
-        <h1 className="text-xl font-semibold text-gray-700">Dashboard</h1>
+        <h1 className="text-xl font-semibold text-gray-700"></h1>
       </div>
       
       {/* V V V 5. ส่วนตะกร้าและปุ่มลบ V V V */}

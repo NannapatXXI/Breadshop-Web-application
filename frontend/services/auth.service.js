@@ -29,4 +29,11 @@ export const getproduct = () => {
 };
 
 
+export const addproduct = (formData) => {
+  return api.post("/api/v1/admin/add-products", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+}
 

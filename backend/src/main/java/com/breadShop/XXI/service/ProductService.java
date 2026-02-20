@@ -2,6 +2,9 @@ package com.breadShop.XXI.service;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -71,4 +74,21 @@ public class ProductService {
     public List<Product> getAllProducts() {
         return productRepository.findAll();
     }
+    public void deleteProduct(Long id) throws IOException {
+
+    Product product = productRepository.findById(id)
+        .orElseThrow(() -> new RuntimeException("Product not found"));
+
+    // 1️⃣ ลบไฟล์รูป ถ้ามี
+    if (product.getImageUrl() != null) {
+
+        Path filePath = Paths.get(System.getProperty("user.dir"))
+                             .resolve(product.getImageUrl());
+
+        Files.deleteIfExists(filePath);
+    }
+
+    // 2️⃣ ลบข้อมูลใน DB
+    productRepository.delete(product);
+}
 }

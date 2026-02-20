@@ -2,28 +2,45 @@
 'use client'; 
 
 // 1. Import เครื่องมือที่จำเป็น
-import { useState } from 'react';
+import { useState,useRef } from 'react';
 import { useCart } from '../../CartContext'; 
 import { useEffect } from 'react';
-
+import toast from 'react-hot-toast'; // (เราจะใช้ toast แจ้งเตือน)
 import { FaPlus, FaTrash, FaEdit } from 'react-icons/fa'; 
-import { getproduct } from "@/services/auth.service";
+import { getproduct,addproduct } from "@/services/auth.service";
+import Cropper from "react-easy-crop";
+
+
+
 
 
 // (เริ่ม Component - เหมือนเดิม)
 export default function ProductPage() {
 
   // (States ทั้งหมด - เหมือนเดิม)
-  const [imageFile, setImage] = useState(null);
-  const [preview, setPreview] = useState(null);
+  const fileInputRef = useRef(null);
+  const [imageSrc, setImageSrc] = useState(null);     // รูปดิบก่อน crop
+  const [imageFile, setImageFile] = useState(null);   // รูปหลัง crop (final)
+  const [showCrop, setShowCrop] = useState(false);    // เปิด modal crop
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
 
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+
+
+  const [showPreview, setShowPreview] = useState(null); 
+  const [error, setError] = useState(""); 
   const { addToCart } = useCart(); 
   const [products, setProducts] = useState([]); 
-  const [isAdminMode, setIsAdminMode] = useState(false); 
+  
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('');
   const [icon, setIcon] = useState('');
+  const [category, setCategory] = useState("BREAD");
+  const [expiryDate, setExpiryDate] = useState("");
+
+
   const [description, setDescription] = useState('');
 
 
@@ -31,6 +48,7 @@ export default function ProductPage() {
     fetchProducts();
   }, []);
   
+  // ดึงข้อมูลสินค้าเมื่อหน้าโหลด และเมื่อมีการเปลี่ยนแปลง
   const fetchProducts = async () => {
 
     try {
@@ -44,6 +62,19 @@ export default function ProductPage() {
       console.error(err);
     }
   };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+  
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImageSrc(reader.result);
+      setShowCrop(true);   // เปิด modal crop ทันที
+    };
+    reader.readAsDataURL(file);
+  };
+  
 
   const handlegetproduct = async () => {
   
@@ -61,9 +92,12 @@ export default function ProductPage() {
   // (Logic Functions - เหมือนเดิม)
   const handleAddProduct = async (e) => {
     e.preventDefault();
+    
   
     if (!name || !price || !stock) {
-      alert('กรุณากรอก ชื่อ, ราคา, และจำนวน');
+     
+      toast.error("กรุณากรอก ชื่อ, ราคา, และจำนวน");
+      
       return;
     }
   
@@ -73,46 +107,32 @@ export default function ProductPage() {
     formData.append("price", price);
     formData.append("stock", stock);
     formData.append("description", description);
-    formData.append("category", "BREAD"); // ใส่ enum ให้ตรงกับ backend
-    formData.append("expiryDate", "2026-12-31");
+    formData.append("category", category); 
+    formData.append("expiryDate", expiryDate); // ใส่ที่เลิกรับ order
   
-    try {
-      const res = await fetch('http://localhost:8080/api/v1/admin/products', {
-        method: "POST",
-        body: formData,
-        credentials: "include"
-      });
+   console.log("FormData:", formData.get("name"), formData.get("price"), formData.get("stock"), formData.get("description"), formData.get("image"));
+   try {
+    const res = await addproduct(formData);
   
-      if (!res.ok) throw new Error("สร้างสินค้าไม่สำเร็จ");
+    const newProduct = res.data;
   
-      const newProduct = await res.json();
+    setProducts(prev => [newProduct, ...prev]);
+    setShowPreview(false); 
+    setName('');
+    setPrice('');
+    setStock('');
+    setDescription('');
+    setImageSrc(null);
+   
+    fileInputRef.current.value = ""; 
+    toast.success("เพิ่มสินค้าสำเร็จ");
   
-      setProducts(prev => [newProduct, ...prev]);
-  
-      setName('');
-      setPrice('');
-      setStock('');
-      setDescription('');
-      setImageFile(null);
-      setPreview(null);
-  
-    } catch (err) {
-      console.error(err);
-      alert("เกิดข้อผิดพลาด");
-    }
+  } catch (err) {
+    console.error(err);
+    toast.error("เพิ่มสินค้าไม่สำเร็จ");
+  }
   };
   
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setImageFile(file);
-
-    // สร้าง preview
-    const imageUrl = URL.createObjectURL(file);
-    setPreview(imageUrl);
-  };
 
   const handleDeleteProduct = (id) => {
     if (confirm('คุณต้องการลบสินค้านี้ใช่หรือไม่?')) {
@@ -124,24 +144,43 @@ export default function ProductPage() {
     addToCart(); 
   };
 
-  //
-  // V V V 1. ฟังก์ชันใหม่สำหรับปุ่มเทส V V V
-  //
-  const handleTestAddCard = () => {
-    const testProduct = {
-      id: Date.now(), // ID ใหม่
-      name: "สินค้าทดสอบ (เปล่า)",
-      price: 0,
-      stock: 0,
-      icon: "❓",
-      description: "นี่คือการ์ดทดสอบที่สร้างขึ้น"
-    };
-    // (เพิ่มการ์ดทดสอบนี้เข้าไปใน State ด้านบนสุด)
-    setProducts(prevProducts => [testProduct, ...prevProducts]);
+  
+  const getCroppedImg = (imageSrc, crop) => {
+    return new Promise((resolve) => {
+      const image = new Image();
+      image.src = imageSrc;
+  
+      image.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = crop.width;
+        canvas.height = crop.height;
+  
+        const ctx = canvas.getContext("2d");
+  
+        ctx.drawImage(
+          image,
+          crop.x,
+          crop.y,
+          crop.width,
+          crop.height,
+          0,
+          0,
+          crop.width,
+          crop.height
+        );
+  
+        canvas.toBlob((blob) => {
+          const file = new File([blob], "cropped.jpeg", {
+            type: "image/jpeg",
+          });
+          resolve(file);
+        }, "image/jpeg");
+      };
+    });
   };
-  //
-  // ^ ^ ^ สิ้นสุดฟังก์ชันใหม่ ^ ^ ^
-  //
+  
+
+
 
 
   // (JSX - ส่วนแสดงผล)
@@ -160,21 +199,7 @@ export default function ProductPage() {
         
        
 
-        {/*
-          V V V 2. ปุ่มใหม่สำหรับเทส V V V
-        */}
-        <button
-          onClick={handleTestAddCard}
-          className="
-            px-4 py-2 bg-purple-500 text-white 
-            font-semibold rounded-lg shadow-md 
-            hover:bg-purple-600 transition duration-150
-          "
-        >
-          🧪 เทสสร้างการ์ดเปล่า
-        </button>
-        {/* ^ ^ ^ สิ้นสุดปุ่มใหม่ ^ ^ ^ */}
-
+       
         <button
           onClick={handlegetproduct}
           className="
@@ -199,26 +224,57 @@ export default function ProductPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">ราคา (บาท) *</label>
-                <input type="number" value={price} onChange={e => setPrice(e.target.value)}
+                <input type="number"  min="0" value={price} onChange={(e) => {const value = Number(e.target.value); if (value >= 0) {   setPrice(value);   }}}
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">จำนวนคงเหลือ *</label>
-                <input type="number" value={stock} onChange={e => setStock(e.target.value)}
+                <input type="number"  min="0" value={stock} onChange={(e) => {const value = Number(e.target.value); if (value >= 0) {   setStock(value);   }}}
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">ไอคอน Emoji</label>
-                <input  type="file"onChange={(e) => setImage(e.target.files[0])} required
+                <label className="block text-sm font-medium text-gray-700">ไอคอน </label>
+                <input  type="file" ref={fileInputRef} onChange={handleImageChange} required
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  หมวดหมู่สินค้า *
+                </label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="mt-1 block w-full px-3  h-11  border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="BREAD"> Bread</option>
+                  <option value="CAKE"> Cake</option>
+                  <option value="DRINK"> Drink</option>
+                </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+              วันปิดรับ order
+              </label>
+              <input
+                type="date"
+                value={expiryDate}
+                onChange={(e) => setExpiryDate(e.target.value)}
+                className="
+                  mt-1 block w-full px-3 py-2
+                  border border-gray-300 rounded-md
+                  focus:outline-none focus:ring-2 focus:ring-blue-500
+                "
+              />
+          </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700">รายละเอียด</label>
                 <textarea value={description} onChange={e => setDescription(e.target.value)} rows="3"
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
               </div>
             </div>
-            <button type="submit" 
+            <button type="button" 
+           onClick={() => setShowPreview(true)}
               className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition duration-150"
             >
               เพิ่มสินค้า
@@ -261,25 +317,14 @@ export default function ProductPage() {
                 </div>
                 
                 <div className="flex gap-2">
-                  {isAdminMode ? (
-                    <>
-                      <button className="flex-1 px-3 py-2 text-xs font-bold bg-yellow-400 text-gray-800 rounded-md hover:bg-yellow-500 flex items-center justify-center gap-1">
-                        <FaEdit /> แก้ไข
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteProduct(product.id)}
-                        className="flex-1 px-3 py-2 text-xs font-bold bg-red-500 text-white rounded-md hover:bg-red-600 flex items-center justify-center gap-1">
-                        <FaTrash /> ลบ
-                      </button>
-                    </>
-                  ) : (
+                 
                     <button 
                       onClick={() => handleSelectProduct(product)}
                       className="w-full px-3 py-2 font-bold bg-blue-600 text-white rounded-md hover:bg-blue-700"
                     >
                       เลือกซื้อ
                     </button>
-                  )}
+                  
                 </div>
               </div>
             </div>
@@ -287,6 +332,117 @@ export default function ProductPage() {
         )}
       </div>
 
+      
+      {/* (Modal แสดง Preview ก่อนเพิ่มสินค้า) */}
+      {showPreview && (
+       <div
+       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
+       onClick={() => setShowPreview(false)}
+     >
+       <div
+         className="bg-white p-6 rounded-xl w-96 shadow-xl"
+         onClick={(e) => e.stopPropagation()}
+       >
+            
+            <h2 className="text-lg font-bold mb-4">Preview สินค้า</h2>
+
+            <p><b>ชื่อ:</b> {name}</p>
+            <p><b>ราคา:</b> {price}</p>
+            <p><b>จำนวน:</b> {stock}</p>
+            <p><b>รายละเอียด</b> {description}</p>
+            <p><b>วันปิดรับ order:</b> {expiryDate}</p>
+
+            {imageFile && (
+              <img
+                src={URL.createObjectURL(imageFile)}
+                alt="preview"
+                className="mt-3 h-40 w-full object-cover rounded"
+              />
+            )}
+
+            <div className="flex justify-end gap-2 mt-5">
+              <button
+                onClick={() => setShowPreview(false)}
+                className="px-4 py-2 bg-gray-300 rounded"
+              >
+                ยกเลิก
+              </button>
+
+              <button
+                onClick={handleAddProduct}
+                className="px-4 py-2 bg-green-600 text-white rounded"
+              >
+                ยืนยัน
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+      {/* (Modal สำหรับ Crop รูปภาพ) */}
+      {showCrop && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div
+            className="bg-white p-6 rounded-xl w-[400px]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-bold mb-4">ปรับรูปภาพ</h2>
+
+            <div className="relative w-full h-64 bg-gray-200">
+              <Cropper
+                image={imageSrc}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={(croppedArea, croppedPixels) =>
+                  setCroppedAreaPixels(croppedPixels)
+                }
+              />
+            </div>
+
+            <input
+              type="range"
+              min={1}
+              max={3}
+              step={0.1}
+              value={zoom}
+              onChange={(e) => setZoom(e.target.value)}
+              className="w-full mt-4"
+            />
+
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                onClick={() => {setShowCrop(false); setImageSrc(null);}}
+                className="px-4 py-2 bg-gray-300 rounded"
+              >
+                ยกเลิก
+              </button>
+
+              <button
+                onClick={async () => {
+                  const cropped = await getCroppedImg(
+                    imageSrc,
+                    croppedAreaPixels
+                  );
+                  setImageFile(cropped);
+                  setShowCrop(false);
+                  setImageSrc(null);
+                }}
+                className="px-4 py-2 bg-green-600 text-white rounded"
+              >
+                ตกลง
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+
+
+
     </div>
+    
   );
 }
