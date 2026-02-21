@@ -15,7 +15,7 @@ export default function AppLayout({ children }) {
     // V V V 2. "หุ้ม" ทุกอย่างด้วย Provider V V V
     <AuthProvider> 
       <CartProvider>
-        <div className="flex h-screen bg-gray-100">
+        <div className="flex h-screen bg-[#EEF4FB]">
           
           {/* (โค้ด Overlay ของคุณ - เหมือนเดิม) */}
           {isSidebarOpen && (

@@ -23,12 +23,14 @@ export default function ProductPage() {
   const [imageFile, setImageFile] = useState(null);   // รูปหลัง crop (final)
   const [showCrop, setShowCrop] = useState(false);    // เปิด modal crop
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
-
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
 
+  const [showPreview, setShowPreview] = useState(false); 
+  const [showPreviewOfAddProduct, setShowPreviewOfAddProduct] = useState(false);
+  
 
-  const [showPreview, setShowPreview] = useState(null); 
   const [error, setError] = useState(""); 
   const { addToCart } = useCart(); 
   const [products, setProducts] = useState([]); 
@@ -36,7 +38,6 @@ export default function ProductPage() {
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('');
-  const [icon, setIcon] = useState('');
   const [category, setCategory] = useState("BREAD");
   const [expiryDate, setExpiryDate] = useState("");
 
@@ -117,7 +118,7 @@ export default function ProductPage() {
     const newProduct = res.data;
   
     setProducts(prev => [newProduct, ...prev]);
-    setShowPreview(false); 
+    setShowPreviewOfAddProduct(false); 
     setName('');
     setPrice('');
     setStock('');
@@ -141,6 +142,7 @@ export default function ProductPage() {
   };
 
   const handleSelectProduct = (product) => {
+    console.log("Selected product:", product);
     addToCart(); 
   };
 
@@ -185,7 +187,7 @@ export default function ProductPage() {
 
   // (JSX - ส่วนแสดงผล)
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 md:p-8">
+    <div className="bg-[#EEF4FB] rounded-lg  p-6 md:p-8">
       
       {/* (ส่วน Header - เหมือนเดิม) */}
       <div className="mb-6">
@@ -195,27 +197,10 @@ export default function ProductPage() {
 
       {/* ส่วนสลับโหมด (Mode Toggle) + ปุ่มเทส */}
       {/* (ผมครอบด้วย flex-wrap เพื่อให้ปุ่มตกบรรทัดได้ในจอมือถือ) */}
-      <div className="flex flex-wrap gap-4 mb-6 items-center  border-4 border-red-500 ">
-        
-       
-
-       
-        <button
-          onClick={handlegetproduct}
-          className="
-            px-4 py-2 bg-purple-500 text-white 
-            font-semibold rounded-lg shadow-md 
-            hover:bg-purple-600 transition duration-150
-          "
-        >
-          🧪 test Api
-        </button>
-      </div>
-
      
-        <div className="bg-gray-50 p-6 rounded-lg border-2 border-dashed border-gray-300 mb-8 ">
+        <div className="bg-gray-50 p-6 rounded-lg border-2 mb-8 ">
           <h3 className="text-lg font-bold text-gray-800 mb-4">➕ เพิ่มสินค้าใหม่</h3>
-          <form onSubmit={handleAddProduct} className="space-y-4 border-4 border-red-500">
+          <form onSubmit={handleAddProduct} className="space-y-4 ">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">ชื่อสินค้า *</label>
@@ -274,7 +259,7 @@ export default function ProductPage() {
               </div>
             </div>
             <button type="button" 
-           onClick={() => setShowPreview(true)}
+           onClick={() => setShowPreviewOfAddProduct(true)}
               className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition duration-150"
             >
               เพิ่มสินค้า
@@ -283,61 +268,87 @@ export default function ProductPage() {
         </div>
       
 
-      {/* (Grid แสดงสินค้า - เหมือนเดิม) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {products.length === 0 ? (
-          <div className="col-span-full text-center py-12">
-            <div className="text-6xl mb-4 opacity-50">📦</div>
-            <h3 className="text-xl font-semibold text-gray-600">ยังไม่มีสินค้า</h3>
-            <p className="text-gray-400">เริ่มเพิ่มสินค้าใหม่โดยเปลี่ยนเป็นโหมด Admin</p>
-          </div>
-        ) : (
-          products.map((product) => (
-            <div key={product.id} 
-                 className="bg-white rounded-lg shadow border overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-              
-              <div className="h-48 flex items-center justify-center bg-gray-100">
-                <img 
-                  src={`http://localhost:8080/${product.imageUrl}`} 
-                  alt={product.name}
-                  className="h-full w-full object-cover"
-                />
-              </div>
+    
+      {/* (table ) */}
+      <div className="bg-white shadow-md rounded-xl p-6">
+  
+        <table className="min-w-full border-collapse border border-gray-300 rounded-lg overflow-hidden">
+          <thead className="bg-gray-100 ">
+            <tr>
+              <th className="px-4 py-3 text-center text-sm  font-semibold text-gray-600">
+               id
+              </th>
+              <th className="px-6 py-3 text-center text-sm font-semibold text-gray-600">
+               name
+              </th>
+              <th className="px-6 py-3 text-center text-sm font-semibold text-gray-600">
+                price
+              </th>
+              <th className="px-6 py-3 text-center text-sm font-semibold text-gray-600">
+                stock
+              </th>
+              <th className="px-6 py-3 text-center text-sm font-semibold text-gray-600">
+                description
+              </th>
+              <th className="px-6 py-3 text-center text-sm font-semibold text-gray-600">
+                category
+              </th>
+              <th className="px-6 py-3 text-center text-sm font-semibold text-gray-600">
+                expiryDate
+              </th>
+              <th className="px-6 py-3 text-center text-sm font-semibold text-gray-600">
+                Image URL
+              </th>
+              <th className="px-6 py-3 text-center text-sm font-semibold text-gray-600">
+                Functions
+              </th>
+            </tr>
+          </thead>
 
-              
-              <div className="p-4">
-                <h3 className="text-lg font-bold text-gray-800 truncate">{product.name}</h3>
-                <p className="text-sm text-gray-500 h-10 overflow-hidden">{product.description}</p>
+          <tbody className="divide-y divide-gray-200">
+          {products.map((product,index) => (
+
+            console.log("สินค้า",product),
+
+            <tr key={product.id} className="border-t  text-left  hover:bg-gray-50">
+              <td className="px-4 py-2">{index + 1}</td> 
+              <td className="px-4 py-2">{product.name}</td>
+              <td className="px-4 py-2">{product.price}</td>
+              <td className="px-4 py-2">{product.stock}</td>
+              <td className="px-4 py-2">{product.description}</td>
+              <td className="px-4 py-2">{product.category}</td>
+              <td className="px-4 py-2">{product.expiryDate}</td>
+              <td className="px-4 py-2">{product.imageUrl}</td>
+              <td className="px-4 py-2 flex gap-2">
+                <button className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700">
+                  ลบ
+                </button>
+                <button className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                  แก้ไข
+                </button>
+                <button className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                 
-                <div className="flex justify-between items-center my-3">
-                  <span className="text-2xl font-bold text-blue-600">฿{product.price.toLocaleString()}</span>
-                  <span className="text-xs font-medium bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
-                    คงเหลือ {product.stock}
-                  </span>
-                </div>
-                
-                <div className="flex gap-2">
-                 
-                    <button 
-                      onClick={() => handleSelectProduct(product)}
-                      className="w-full px-3 py-2 font-bold bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                    >
-                      เลือกซื้อ
-                    </button>
+                onClick={() =>{
+                  setSelectedProduct(product);
+                  setShowPreview(true);
+                }}
+                >
                   
-                </div>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+                  preview
+                </button>
+              </td>
+            </tr>
+          ))}
+          </tbody>
+        </table>
+    </div>
 
       
       {/* (Modal แสดง Preview ก่อนเพิ่มสินค้า) */}
-      {showPreview && (
+      {showPreviewOfAddProduct && (
        <div
        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
-       onClick={() => setShowPreview(false)}
+       onClick={() => setShowPreviewOfAddProduct(false)}
      >
        <div
          className="bg-white p-6 rounded-xl w-96 shadow-xl"
@@ -362,7 +373,7 @@ export default function ProductPage() {
 
             <div className="flex justify-end gap-2 mt-5">
               <button
-                onClick={() => setShowPreview(false)}
+                onClick={() => setShowPreviewOfAddProduct(false)}
                 className="px-4 py-2 bg-gray-300 rounded"
               >
                 ยกเลิก
@@ -376,6 +387,54 @@ export default function ProductPage() {
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* (Modal แสดง Preview ข้อมูลสินค้าในตาราง) */}
+      {showPreview && selectedProduct && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
+          onClick={() => setShowPreview(false)}
+        >
+          <div
+            className="bg-white p-6 rounded-xl w-96 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+          <div className="bg-white rounded-lg shadow border overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+              
+              <div className="h-48 flex items-center justify-center bg-gray-100">
+                <img 
+                  src={`http://localhost:8080/${selectedProduct.imageUrl}`} 
+                  alt={selectedProduct.name}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+
+              
+              <div className="p-4">
+                  <h3 className="text-lg font-bold text-gray-800 truncate">{selectedProduct.name}</h3>
+                  <p className="text-sm text-gray-500 h-10 overflow-hidden">{selectedProduct.description}</p>
+                  
+                  <div className="flex justify-between items-center my-3">
+                    <span className="text-2xl font-bold text-blue-600">฿{selectedProduct.price.toLocaleString()}</span>
+                    <span className="text-xs font-medium bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                      คงเหลือ {selectedProduct.stock}
+                    </span>
+                  </div>
+                  
+              </div>
+
+            </div>
+            <div className="flex justify-end gap-2 mt-5">
+              <button
+                onClick={() => setShowPreview(false)}
+                className="px-4 py-2 bg-gray-300 rounded"
+              >
+                ปิด
+              </button>
+            
+            </div>
           </div>
         </div>
       )}
