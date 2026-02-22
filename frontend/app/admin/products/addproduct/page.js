@@ -3,13 +3,12 @@
 
 // 1. Import เครื่องมือที่จำเป็น
 import { useState,useRef } from 'react';
-import { useCart } from '../../CartContext'; 
+import { useCart } from '../../../CartContext'; 
 import { useEffect } from 'react';
 import toast from 'react-hot-toast'; // (เราจะใช้ toast แจ้งเตือน)
 import { FaPlus, FaTrash, FaEdit } from 'react-icons/fa'; 
 import { getproduct,addproduct } from "@/services/auth.service";
 import Cropper from "react-easy-crop";
-import { useRouter } from "next/navigation";
 
 
 
@@ -19,8 +18,6 @@ import { useRouter } from "next/navigation";
 export default function ProductPage() {
 
   // (States ทั้งหมด - เหมือนเดิม)
-  const router = useRouter();
-
   const fileInputRef = useRef(null);
   const [imageSrc, setImageSrc] = useState(null);     // รูปดิบก่อน crop
   const [imageFile, setImageFile] = useState(null);   // รูปหลัง crop (final)
@@ -213,12 +210,12 @@ export default function ProductPage() {
       <div className="mb-6  flex rounded-lg">
 
         <div className="w-4/5 p-4  ">
-          <h2 className="text-2xl font-bold text-gray-800">Product</h2>
+          <h2 className="text-2xl font-bold text-gray-800">Add Product</h2>
           <p className="text-gray-500">จัดการสินค้าของคุณ</p>
         </div>
 
         <div className="w-1/2 p-4 flex justify-end rounded-lg ">
-            <button  onClick={() => router.push("/admin/products/addproduct")} className="px-4 py-2  h-10 bg-[#0F2235] text-white font-semibold rounded-lg shadow-md hover:bg-blue-500 transition duration-150">
+            <button className="px-4 py-2  h-10 bg-[#0F2235] text-white font-semibold rounded-lg shadow-md hover:bg-blue-500 transition duration-150">
               + add Product
               </button>
          
@@ -226,89 +223,81 @@ export default function ProductPage() {
 
       </div>
 
+      {/* ส่วนสลับโหมด (Mode Toggle) + ปุ่มเทส */}
+      {/* (ผมครอบด้วย flex-wrap เพื่อให้ปุ่มตกบรรทัดได้ในจอมือถือ) */}
+     
+        <div className="bg-gray-50 p-6 rounded-lg border-2 mb-8 ">
+          <h3 className="text-lg font-bold text-gray-800 mb-4">➕ เพิ่มสินค้าใหม่</h3>
+          <form onSubmit={handleAddProduct} className="space-y-4 ">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">ชื่อสินค้า *</label>
+                <input type="text" value={name} onChange={e => setName(e.target.value)}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">ราคา (บาท) *</label>
+                <input type="number"  min="0" value={price} onChange={(e) => {const value = Number(e.target.value); if (value >= 0) {   setPrice(value);   }}}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">จำนวนคงเหลือ *</label>
+                <input type="number"  min="0" value={stock} onChange={(e) => {const value = Number(e.target.value); if (value >= 0) {   setStock(value);   }}}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">ไอคอน </label>
+                <input  type="file" ref={fileInputRef} onChange={handleImageChange} required
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  หมวดหมู่สินค้า *
+                </label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="mt-1 block w-full px-3  h-11  border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="BREAD"> Bread</option>
+                  <option value="CAKE"> Cake</option>
+                  <option value="DRINK"> Drink</option>
+                </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+              วันปิดรับ order
+              </label>
+              <input
+                type="date"
+                value={expiryDate}
+                onChange={(e) => setExpiryDate(e.target.value)}
+                className="
+                  mt-1 block w-full px-3 py-2
+                  border border-gray-300 rounded-md
+                  focus:outline-none focus:ring-2 focus:ring-blue-500
+                "
+              />
+          </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700">รายละเอียด</label>
+                <textarea value={description} onChange={e => setDescription(e.target.value)} rows="3"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+              </div>
+            </div>
+            <button type="button" 
+           onClick={() => setShowPreviewOfAddProduct(true)}
+              className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition duration-150"
+            >
+              เพิ่มสินค้า
+            </button>
+          </form>
+        </div>
+      
 
     
-      {/* (table ) */}
-      <div className="bg-white  rounded-xl ">
-  
-        <table className="min-w-full table-fixed border  border-gray-300 rounded-lg overflow-hidden">
-          <thead className="bg-[#0F2235]  text-white">
-            <tr>
-              <th className="px-4 py-3  text-center text-sm  font-semibold">
-               id
-              </th>
-              <th className="px-6 py-3 text-center text-sm font-semibold ">
-               name
-              </th>
-              <th className="px-6 py-3 text-center text-sm font-semibold">
-                price
-              </th>
-              <th className="px-6 py-3 text-center text-sm font-semibold">
-                stock
-              </th>
-              <th className="px-6 py-3 text-center text-sm font-semibold">
-                description
-              </th>
-              <th className="px-6 py-3 text-center text-sm font-semibold">
-                category
-              </th>
-              <th className="px-6 py-3   text-center text-sm font-semibold">
-                expiryDate
-              </th>
-              <th className=" py-3 text-center text-sm font-semibold">
-                Image 
-              </th>
-              <th className="px-6 py-3 text-center text-sm font-semibold">
-                Functions
-              </th>
-            </tr>
-          </thead>
-
-          <tbody className="divide-y divide-gray-200">
-          {products.map((product,index) => (
-
-            console.log("สินค้า",product),
-
-            <tr key={product.id} className="border-t  text-center  hover:bg-gray-50">
-              <td className="px-4 py-2">{index + 1}</td> 
-              <td className="px-4 py-2">{product.name}</td>
-              <td className="px-4 py-2">{product.price}</td>
-              <td className="px-4 py-2">{product.stock}</td>
-              <td className="px-4 py-2">{product.description}</td>
-              <td className="px-4 py-2">{boxMap[product.category] || (<div className="p-4 bg-gray-100 border">  ไม่พบค่า</div>)}</td>
-              <td className="px-4 py-2">{product.expiryDate}</td>
-              <td className="px-3 py-2"><img
-                src={`http://localhost:8080/${product.imageUrl}`}
-                alt={product.name}
-                className="w-20 h-20 object-cover rounded-md border"
-                
-              /></td>
-              <td className="px-4 py-2 ">
-                <div className="flex justify-center gap-2">
-                  <button className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700">
-                    ลบ
-                  </button>
-                  <button className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                    แก้ไข
-                  </button>
-                  <button className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                  
-                  onClick={() =>{
-                    setSelectedProduct(product);
-                    setShowPreview(true);
-                  }}
-                  >
-                    
-                    preview
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-          </tbody>
-        </table>
-    </div>
-
+     
       
       {/* (Modal แสดง Preview ก่อนเพิ่มสินค้า) */}
       {showPreviewOfAddProduct && (
