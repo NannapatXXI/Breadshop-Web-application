@@ -6,7 +6,12 @@ import { useState,useRef } from 'react';
 import { useCart } from '../../CartContext'; 
 import { useEffect } from 'react';
 import toast from 'react-hot-toast'; // (เราจะใช้ toast แจ้งเตือน)
-import { FaPlus, FaTrash, FaEdit } from 'react-icons/fa'; 
+import { FaSearch,FaPlus, FaTrash, FaEdit } from 'react-icons/fa';
+import { TiArchive } from "react-icons/ti";
+import { FiAlertTriangle } from "react-icons/fi";
+import { MdOutlineSell } from "react-icons/md";
+import { TiDeleteOutline } from "react-icons/ti";
+
 import { getproduct,addproduct } from "@/services/auth.service";
 import Cropper from "react-easy-crop";
 import { useRouter } from "next/navigation";
@@ -38,6 +43,7 @@ export default function ProductPage() {
   const { addToCart } = useCart(); 
   const [products, setProducts] = useState([]); 
   
+  const [search, setSearch] = useState('');
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('');
@@ -155,6 +161,22 @@ export default function ProductPage() {
     )
   };
 
+  const renderStockBox = (stock) => {
+    if (stock >= 10) {
+      return <div className="px-3 py-1 bg-green-100 text-green-700 rounded-md">พร้อมขาย</div>;
+    } 
+    else if (stock >= 5) {
+      return <div className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-md">เหลือปานกลาง</div>;
+    } 
+    else if (stock > 0) {
+      return <div className="px-3 py-1 bg-orange-100 text-orange-700 rounded-md">ใกล้หมด</div>;
+    } 
+    else {
+      return <div className="px-3 py-1 bg-red-100 text-red-700 rounded-md">หมด</div>;
+    }
+  };
+  
+
   const handleDeleteProduct = (id) => {
     if (confirm('คุณต้องการลบสินค้านี้ใช่หรือไม่?')) {
       setProducts(products.filter(p => p.id !== id));
@@ -226,6 +248,109 @@ export default function ProductPage() {
 
       </div>
 
+      {/* (ส่วนแสดงสถิติสินค้า) */}
+      <div  className='grid grid-cols-4 gap-2 mb-2  text-gray-500 font-medium h-32'>
+          <div className="bg-white flex items-center justify-left pl-10 rounded-md">
+            <div className="h-10 flex items-center justify-center">
+               <div className='bg-[#EEF4FB] p-4 rounded-md flex items-center justify-center'>
+                 <TiArchive  size={30} className="text-blue-600" />
+                </div>
+                <div className = 'flex flex-col items-start justify-center ml-3'>
+                        <h1> ....</h1>
+                        <p >สินค้าทั้งหมด</p>
+                      
+                 </div>
+                 
+            </div>
+            
+          </div>
+        
+          <div className="bg-white flex items-center justify-left pl-10 rounded-md">
+            <div className="h-10 flex items-center justify-center">
+              
+                <div className='bg-[#c6e9c6] p-4 rounded-md flex items-center justify-center text-white'>
+                    <MdOutlineSell size={30} className="text-green-600" />
+                  </div>
+                  <div className = 'flex flex-col items-start justify-center ml-3'>
+                        <h1> ....</h1>
+                        <p >พร้อมขาย</p>
+                      
+                 </div>
+            </div>
+            
+          </div>
+          <div className="bg-white flex items-center justify-left pl-10 rounded-md">
+            <div className="h-10 flex items-center justify-center">
+                 <div className='bg-[#fff4b4] p-4 rounded-md flex items-center justify-center text-white'>
+                 <FiAlertTriangle  size={30} className="text-yellow-800"/>
+                  </div>
+                  <div className = 'flex flex-col items-start justify-center ml-3'>
+                        <h1> ....</h1>
+                        <p >สต็อกใกล้หมด</p>
+                      
+                 </div>
+            </div>
+            
+          </div>
+          <div className="bg-white flex items-center justify-left pl-10 rounded-md">
+            <div className="h-10 flex items-center justify-center">
+                  <div className='bg-[#e4c9c9] p-4 rounded-md flex items-center justify-center text-white'>
+                  <TiDeleteOutline  size={30} className="text-red-800"/>
+                  </div>
+                  <div className = 'flex flex-col items-start justify-center ml-3'>
+                        <h1> ....  </h1>
+                        <p >หมดสต็อก</p>
+                      
+                 </div>
+            </div>
+            
+          </div>
+      </div>
+
+      <div className="flex items-center justify-between  gap-4 mb-6  bg-white  shadow-md p-2 rounded-lg">
+            
+          <div className="relative flex-1 ">
+                  <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  
+                  <input
+                    type="text"
+                    placeholder="ค้นหาสินค้า..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-[#E0EBF8]  "
+                  />
+              </div>
+            <div className="inline-flex p-1 rounded-lg ">
+              
+              <div className = "grid grid-cols-[10px_150px_150px_150_150px] w-1000 gap-2 "> 
+                    <div className=' text-2xl text-gray-400 flex items-center justify-center'> 
+                          |
+                        </div>
+                      <button  className={`px-4 py-2 rounded-md font-semibold transition-all bg-[#0F2235] text-white  flex items-center justify-center  `}>
+                       ทั้งหมด
+                    </button>
+                 
+                
+                  
+                      <button  className={`px-4 py-2 rounded-md font-semibold hover:bg-gray-200  text-gray-400  w-full`}>
+                          Bread
+                      </button>
+                 
+                      <button  className={`px-4 py-2 rounded-md font-semibold  text-gray-400  hover:bg-gray-200  w-full`}>
+                          Cake
+                      </button>
+                 
+                      <button  className={`px-4 py-2 rounded-md font-semibold  text-gray-400  hover:bg-gray-200  w-full`}>
+                          Cookie
+                      </button>
+              </div> 
+            </div>
+
+    
+           
+    
+            
+          </div>
 
     
       {/* (table ) */}
@@ -253,8 +378,13 @@ export default function ProductPage() {
                 category
               </th>
               <th className="px-6 py-3   text-center text-sm font-semibold">
+                status
+              </th>
+              <th className="px-6 py-3   text-center text-sm font-semibold">
                 expiryDate
               </th>
+              
+              
               <th className=" py-3 text-center text-sm font-semibold">
                 Image 
               </th>
@@ -276,6 +406,8 @@ export default function ProductPage() {
               <td className="px-4 py-2">{product.stock}</td>
               <td className="px-4 py-2">{product.description}</td>
               <td className="px-4 py-2">{boxMap[product.category] || (<div className="p-4 bg-gray-100 border">  ไม่พบค่า</div>)}</td>
+              <td className="px-4 py-2">{renderStockBox(product.stock) || (<div className="p-4 bg-gray-100 border">  ไม่พบค่า</div>)}</td>
+              
               <td className="px-4 py-2">{product.expiryDate}</td>
               <td className="px-3 py-2"><img
                 src={`http://localhost:8080/${product.imageUrl}`}
