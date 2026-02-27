@@ -63,7 +63,7 @@ export default function ProductPage() {
 
   // (JSX - ส่วนแสดงผล)
   return (
-    <div className="bg-[#EEF4FB] rounded-lg shadow-md p-6 md:p-8">
+    <div className="bg-[#EEF4FB] rounded-lg p-6 md:p-8">
       
       {/* (ส่วน Header - เหมือนเดิม) */}
       <div className="mb-6">
