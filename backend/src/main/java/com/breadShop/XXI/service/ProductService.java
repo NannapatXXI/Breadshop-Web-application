@@ -5,13 +5,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.breadShop.XXI.dto.product.ProductRequest;
 import com.breadShop.XXI.entity.Product;
 import com.breadShop.XXI.entity.ProductCategory;
 import com.breadShop.XXI.repository.ProductRepository;
@@ -31,64 +31,70 @@ public class ProductService {
     }
 
    
-    public Product createProduct(
-        String name,
-        Double price,
-        Integer stock,
-        String description,
-        ProductCategory category,
-        LocalDate expiryDate,
-        MultipartFile image
-) throws IOException {
+   public Product createProduct(ProductRequest request) throws IOException {
 
-    // สร้าง folder ถ้ายังไม่มี
-    File uploadFolder = new File(UPLOAD_DIR);
-    if (!uploadFolder.exists()) {
-        uploadFolder.mkdirs();
-    }
+    MultipartFile image = request.getImage();
 
-    // ตั้งชื่อไฟล์ใหม่กันชื่อซ้ำ
-    String originalFilename = image.getOriginalFilename();
-    String fileName = UUID.randomUUID() + "_" + originalFilename;
-
-    File destinationFile = new File(uploadFolder, fileName);
-
-    // บันทึกไฟล์
+    String fileName = UUID.randomUUID() + "_" + image.getOriginalFilename();
+    File destinationFile = new File(UPLOAD_DIR, fileName);
     image.transferTo(destinationFile);
 
-    // สร้าง Entity
     Product product = new Product();
-    product.setName(name);
-    product.setPrice(price);
-    product.setStock(stock);
-    product.setDescription(description);
-    product.setCategory(category);
-    product.setExpiryDate(expiryDate);
-    product.setImageUrl("uploads/" + fileName); // เก็บแค่ path relative
+    product.setName(request.getName());
+    product.setPrice(request.getPrice());
+    product.setStock(request.getStock());
+    product.setDescription(request.getDescription());
+    product.setCategory(request.getCategory());
+    product.setExpiryDate(request.getExpiryDate());
+    product.setImageUrl("uploads/" + fileName);
 
     return productRepository.save(product);
 }
-
 
     
     public List<Product> getAllProducts() {
         return productRepository.findAll();
     }
+
     public void deleteProduct(Long id) throws IOException {
+        Product product = productRepository.findById(id).orElseThrow(() -> new RuntimeException("Product not found"));
+        if (product.getImageUrl() != null) {
+            Path filePath = Paths.get(System.getProperty("user.dir"))
+                                .resolve(product.getImageUrl());
 
-    Product product = productRepository.findById(id)
-        .orElseThrow(() -> new RuntimeException("Product not found"));
+            Files.deleteIfExists(filePath);
+        }
 
-    // 1️⃣ ลบไฟล์รูป ถ้ามี
-    if (product.getImageUrl() != null) {
-
-        Path filePath = Paths.get(System.getProperty("user.dir"))
-                             .resolve(product.getImageUrl());
-
-        Files.deleteIfExists(filePath);
+        productRepository.delete(product);
     }
-
-    // 2️⃣ ลบข้อมูลใน DB
-    productRepository.delete(product);
-}
+   /**
+    * นับจำนวนสินค้าตามหมวดหมู่ที่กำหนด
+    * @param category ประเภทของสินค้าที่ต้องการนับ
+    * @return  จำนวนสินค้าที่อยู่ในหมวดหมู่ที่กำหนด
+    */
+    public Long countProductCategory(ProductCategory  category) {
+        Long count = productRepository.countByCategory(category);
+        System.out.println("Total products: " + count);
+        return  count;
+       
+    }
+    
+    public Long countAllProducts() {
+        Long count = productRepository.count();
+        System.out.println("Total products: " + count);
+        return  count;
+       
+    }
+    public Long countProductsByExpiryDate() {
+        Long count = productRepository.countByExpiryDateBefore(java.time.LocalDate.now());
+        System.out.println("Total expired products: " + count);
+        return  count;
+       
+    }
+    public Long countProductsByStock() {
+        Long count = productRepository.countByStockGreaterThan(5);
+        System.out.println("Total low stock products: " + count);
+        return  count;
+       
+    }
 }

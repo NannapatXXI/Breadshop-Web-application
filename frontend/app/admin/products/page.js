@@ -235,8 +235,8 @@ export default function ProductPage() {
       <div className="mb-6  flex rounded-lg">
 
         <div className="w-4/5 p-4  ">
-          <h2 className="text-2xl font-bold text-gray-800">Product</h2>
-          <p className="text-gray-500">จัดการสินค้าของคุณ</p>
+          <h2 className="text-2xl font-bold text-gray-800">Product list</h2>
+          <p className="text-[#4279c1]">ทั้งหมด ... รายการ</p>
         </div>
 
         <div className="w-1/2 p-4 flex justify-end rounded-lg ">

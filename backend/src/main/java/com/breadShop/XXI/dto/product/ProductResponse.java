@@ -4,7 +4,11 @@ import java.time.LocalDate;
 
 import com.breadShop.XXI.entity.ProductCategory;
 
+/**
+ * DTO สำหรับส่งข้อมูลสินค้าไปยัง client โดยไม่ต้องผ่าน entity ตรงๆ
+ */
 public class ProductResponse {
+
 
     private Long id;
     private String name;
@@ -39,4 +43,5 @@ public class ProductResponse {
     public String getImageUrl() { return imageUrl; }
     public ProductCategory getCategory() { return category; }
     public LocalDate getExpiryDate() { return expiryDate; }
+    
 }

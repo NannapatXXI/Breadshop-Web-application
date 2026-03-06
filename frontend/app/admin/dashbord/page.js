@@ -8,6 +8,7 @@ import { getMe } from "@/services/auth.service";
 import { MdOutlineAttachMoney } from "react-icons/md";
 import { BiChevronDownSquare,BiGroup,BiMessageSquareX } from "react-icons/bi";
 import SalesChart from "../../components/SalesChart";
+import CategoryDonutChart from "../../components/CategoryDonutChart";
 
 export default function HomePage() {
   
@@ -138,17 +139,18 @@ export default function HomePage() {
         </div>
 
 
-        <div className='w-full grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mt-6'>
+        <div className="w-full grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mt-6">
 
-            <div className="bg-white rounded-2xl shadow-md  flex border-b-2 border-blue-500">
+                {/* CARD 1 */}
+                <div className="bg-white rounded-2xl shadow-md border-b-2 border-blue-500 hover:shadow-xl transition">
+                <div className="flex justify-between items-start p-5">
 
-              
-                <div className="mt-4  pb-4 pl-5">
+                    <div>
                     <p className="text-gray-400 text-sm mb-4">
                         รายได้รวมเดือนนี้
                     </p>
 
-                    <h1 className="text-4xl font-bold text-gray-900 mb-3">
+                    <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
                         ฿84,320
                     </h1>
 
@@ -160,24 +162,25 @@ export default function HomePage() {
                         vs เดือนที่แล้ว
                         </span>
                     </div>
-                </div>
-                <div className=" items-end  pl-4 pt-4">
-                    <div className="bg-blue-100 p-4 rounded-xl">
-                         <MdOutlineAttachMoney size={28} className="text-blue-600" />
                     </div>
+
+                    <div className="bg-blue-100 p-4 rounded-xl">
+                    <MdOutlineAttachMoney size={28} className="text-blue-600" />
+                    </div>
+
                 </div>
-               
-            </div>
+                </div>
 
-            <div className="bg-white rounded-2xl shadow-md  flex border-b-2 border-green-500">
+                {/* CARD 2 */}
+                <div className="bg-white rounded-2xl shadow-md border-b-2 border-green-500 hover:shadow-xl transition">
+                <div className="flex justify-between items-start p-5">
 
-              
-                <div className="mt-4  pb-4 pl-5">
+                    <div>
                     <p className="text-gray-400 text-sm mb-4">
                         ออเดอร์ทั้งหมด
                     </p>
 
-                    <h1 className="text-4xl font-bold text-gray-900 mb-3">
+                    <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
                         1123
                     </h1>
 
@@ -189,22 +192,25 @@ export default function HomePage() {
                         vs เดือนที่แล้ว
                         </span>
                     </div>
-                </div>
-                <div className=" items-end  pl-4 pt-4">
-                    <div className="bg-green-100 p-4 rounded-xl">
-                         <BiChevronDownSquare  size={28} className="text-green-600" />
                     </div>
-                </div>
-               
-            </div>
-            <div className="bg-white rounded-2xl shadow-md  flex border-b-2 border-orange-500">
 
-                <div className="mt-4  pb-4 pl-5">
+                    <div className="bg-green-100 p-4 rounded-xl">
+                    <BiChevronDownSquare size={28} className="text-green-600" />
+                    </div>
+
+                </div>
+                </div>
+
+                {/* CARD 3 */}
+                <div className="bg-white rounded-2xl shadow-md border-b-2 border-orange-500 hover:shadow-xl transition">
+                <div className="flex justify-between items-start p-5">
+
+                    <div>
                     <p className="text-gray-400 text-sm mb-4">
                         ลูกค้าทั้งหมด
                     </p>
 
-                    <h1 className="text-4xl font-bold text-gray-900 mb-3">
+                    <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
                         58
                     </h1>
 
@@ -216,24 +222,26 @@ export default function HomePage() {
                         vs เดือนที่แล้ว
                         </span>
                     </div>
-                </div>
-                <div className=" items-end  pl-4 pt-4">
-                    <div className="bg-orange-100 p-4 rounded-xl">
-                         <BiGroup size={28} className="text-orange-600" />
                     </div>
-                </div>
-               
-            </div>
-            <div className="bg-white rounded-2xl shadow-md  flex border-b-2 border-red-500">
 
-              
-                <div className="mt-4  pb-4 pl-5">
+                    <div className="bg-orange-100 p-4 rounded-xl">
+                    <BiGroup size={28} className="text-orange-600" />
+                    </div>
+
+                </div>
+                </div>
+
+                {/* CARD 4 */}
+                <div className="bg-white rounded-2xl shadow-md border-b-2 border-red-500 hover:shadow-xl transition">
+                <div className="flex justify-between items-start p-5">
+
+                    <div>
                     <p className="text-gray-400 text-sm mb-4">
                         ออเดอร์ยกเลิก
                     </p>
 
-                    <h1 className="text-4xl font-bold text-gray-900 mb-3">
-                       12
+                    <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
+                        12
                     </h1>
 
                     <div className="flex items-center gap-2">
@@ -244,30 +252,29 @@ export default function HomePage() {
                         vs เดือนที่แล้ว
                         </span>
                     </div>
-                </div>
-                <div className=" items-end  pl-4 pt-4">
-                    <div className="bg-red-100 p-4 rounded-xl">
-                         <BiMessageSquareX size={28} className="text-red-600" />
                     </div>
+
+                    <div className="bg-red-100 p-4 rounded-xl">
+                    <BiMessageSquareX size={28} className="text-red-600" />
+                    </div>
+
                 </div>
-               
-            </div>
+                </div>
 
         </div>
-
         <div className="grid grid-cols-3 gap-4  mt-6">
             <div className=' col-span-2  h-96 rounded-2xl bg-white  shadow-md ' >
                     <div className=" m-2 h-full flex flex-col">
 
-                        <div className=' border-red-500 border-2 h-16 w-full flex  items-center   text-gray-500 font-semibold'> 
+                        <div className=' h-16 w-full flex  items-center   text-gray-500 font-semibold'> 
 
-                                <div className=' w-1/2'>
+                                <div className=' w-1/2 pl-6'>
                                         <h1 className='text-black text-2xl'>{getGraph()}</h1>
                                         <p className='text-sm'>{getInfoGraph()}</p>
                                 </div>
                                 <div className=' w-1/2 flex items-center justify-end pr-4'>
                                        
-                                       <div className = 'flex gap-2 items-center justify-end pr-4'>
+                                       <div className = 'flex gap-2 items-center justify-end pr-4 '>
                                                <button  onClick={() => {
                                                             setActive("A");
                                                             perweek();
@@ -315,15 +322,44 @@ export default function HomePage() {
             </div>
            
            
-                <div className='  h-96 rounded-2xl bg-white  shadow-md ' >
-                        <div className=" m-2 border-red-500 border-2  h-96">
-                            <div> หมวดหมู่สินค้า</div>
+                <div className='  h-96 rounded-2xl bg-white  shadow-md font-semibold' >
+                        <div className=" m-2 ">
+                            <div className='pl-6 pt-2 '>
+                                <h1 className='text-black text-2xl'>หมวดหมู่สินค้า</h1>
+                               <p className='text-gray-600 text-sm'>สัดส่วนยอดขายเดือนนี้</p>
+                            </div>
+                            <div className="flex-1 p-4 rounded-2xl  pr-5">
+                                <CategoryDonutChart />
+                            </div>
                         </div>
                 </div>
            
         </div>
-        <div className=' border-red-500 border-2  h-96 w-full mt-6 rounded-2xl bg-white  shadow-md ' >
-            History Order
+        <div className='grid grid-cols-4 gap-4  h-[500px] w-full mt-6 rounded-2xl ' >
+            <div className=' col-span-3  rounded-2xl bg-white  shadow-md   border-red-500 border-2  font-semibold  w-full' >
+                    
+                    <div className=' h-16 w-full flex  items-center   text-gray-500 font-semibold'> 
+
+                        <div className=' w-1/2 pl-6'>
+                                <h1 className='text-black text-2xl'>ออเดอร์ล่าสุด</h1>
+                                <p className='text-sm'> 5 ออเดอร์ล่าสุด</p>
+                        </div>
+                        <div className=' w-1/2 flex items-center justify-end pr-4'>
+                            
+                            <div className = 'flex gap-2 items-center justify-end pr-4 '>
+                                    <p>ดูทั้งหมด</p>
+                            </div>
+                        </div>
+
+                    </div>
+            </div>
+            <div className='  rounded-2xl bg-white  shadow-md   border-red-500 border-2 font-semibold   ' >  
+                    <div className='pl-6 pt-2 '>
+                                <h1 className='text-black text-2xl'>สินค้าขายดี</h1>
+                               <p className='text-gray-600 text-sm'>ของเดือน #เดือนนี้ </p>
+                    </div>  
+            </div>
+            
         </div>
     </div>
   );
