@@ -13,6 +13,8 @@ import { MdOutlineSell } from "react-icons/md";
 import { TiDeleteOutline } from "react-icons/ti";
 
 import { getproduct,addproduct } from "@/services/auth.service";
+import api from "@/lib/api"; // [Claude] ใช้เรียก delete API
+import { boyerMooreContains } from "@/lib/boyerMoore"; // [Claude] Boyer-Moore search
 import Cropper from "react-easy-crop";
 import { useRouter } from "next/navigation";
 
@@ -38,12 +40,27 @@ export default function ProductPage() {
   const [showPreview, setShowPreview] = useState(false); 
   const [showPreviewOfAddProduct, setShowPreviewOfAddProduct] = useState(false);
   
+  const [showEditProduct, setshowEditProduct] = useState(false); 
 
-  const [error, setError] = useState(""); 
-  const { addToCart } = useCart(); 
-  const [products, setProducts] = useState([]); 
-  
+  const [error, setError] = useState("");
+  const { addToCart } = useCart();
+  const [products, setProducts] = useState([]);
+
+  // [Claude] state สำหรับ confirm modal ลบสินค้า
+  const [deleteModal, setDeleteModal] = useState({ open: false, productId: null, productName: '' }); 
+
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
+
+  const [countAllProduct , setCountAllProduct] = useState(0);
+  const [countReadyProduct , setCounReadyProduct] = useState(0);
+  const [countMediumProduct , setCountMediumProduct] = useState(0);
+  const [countLowProduct , setCountLowProduct] = useState(0);
+  const [countOutofstockProduct , setCountOutofstockProduct] = useState(0);
+
+ 
   const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 5;
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('');
@@ -62,10 +79,41 @@ export default function ProductPage() {
   const fetchProducts = async () => {
 
     try {
-      
+      let countAProduct = 0;
+      let countReadyProduct = 0;
+      let countMediumProduct = 0;
+      let countLowProduct = 0;
+      let countOutofstockProduct = 0;
+
+
       const res = await getproduct();
       console.log(res.data);
+      res.data.forEach(p => {
+        console.log(" จำนวน Stock "+ p.name+" :"+p.stock);
+       
+        countAProduct++;
 
+        if(p.stock >= 10){
+          console.log("พร้อมขาย "+p.name);
+          countReadyProduct++;
+        } else if(p.stock >= 5){
+          console.log("เหลือปานกลาง "+p.name);
+          countMediumProduct++;
+        } else if(p.stock > 0){
+          console.log("ใกล้หมด "+p.name);
+          countLowProduct++;
+        } else {
+          console.log("หมด "+p.name);
+          countOutofstockProduct++;
+        }
+      });
+
+      setCounReadyProduct(countReadyProduct);
+      setCountMediumProduct(countMediumProduct);
+      setCountLowProduct(countLowProduct);
+      setCountOutofstockProduct(countOutofstockProduct);
+      setCountAllProduct(countAProduct);
+      console.log("จำนวนสินค้าทั้งหมด: ", countAProduct);
       setProducts(res.data);
   
     } catch (err) {
@@ -97,6 +145,20 @@ export default function ProductPage() {
       console.error(err);
     }
   };
+
+  // [Claude] ใช้ Boyer-Moore search แทน .includes() — case-insensitive อยู่ใน boyerMooreContains แล้ว
+  const filteredProducts = products.filter(p => {
+    const matchCategory = categoryFilter === "ALL" || p.category === categoryFilter;
+    const matchSearch = boyerMooreContains(p.name ?? '', search);
+    return matchCategory && matchSearch;
+  });
+
+  const totalPages = Math.ceil(filteredProducts.length / PAGE_SIZE);
+  const pagedProducts = filteredProducts.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  // reset กลับหน้า 1 เมื่อ filter หรือ search เปลี่ยน
+  const handleCategoryChange = (cat) => { setCategoryFilter(cat); setCurrentPage(1); };
+  const handleSearchChange = (e) => { setSearch(e.target.value); setCurrentPage(1); };
 
   
   // (Logic Functions - เหมือนเดิม)
@@ -177,15 +239,27 @@ export default function ProductPage() {
   };
   
 
-  const handleDeleteProduct = (id) => {
-    if (confirm('คุณต้องการลบสินค้านี้ใช่หรือไม่?')) {
-      setProducts(products.filter(p => p.id !== id));
+  // [Claude] เปิด modal confirm ก่อนลบ
+  const handleDeleteProduct = (id, name) => {
+    setDeleteModal({ open: true, productId: id, productName: name });
+  };
+
+  // [Claude] ยืนยันลบจริง — เรียก API แล้วปิด modal
+  const confirmDelete = async () => {
+    try {
+      await api.delete(`/api/v1/admin/${deleteModal.productId}`);
+      setProducts(prev => prev.filter(p => p.id !== deleteModal.productId));
+      toast.success('ลบสินค้าสำเร็จ');
+    } catch {
+      toast.error('ลบสินค้าไม่สำเร็จ');
+    } finally {
+      setDeleteModal({ open: false, productId: null, productName: '' });
     }
   };
 
   const handleSelectProduct = (product) => {
     console.log("Selected product:", product);
-    addToCart(); 
+     //addToCart(); 
   };
 
   
@@ -236,7 +310,7 @@ export default function ProductPage() {
 
         <div className="w-4/5 p-4  ">
           <h2 className="text-2xl font-bold text-gray-800">Product list</h2>
-          <p className="text-[#4279c1]">ทั้งหมด ... รายการ</p>
+          <p className="text-[#4279c1]">ทั้งหมด {countAllProduct} รายการ</p>
         </div>
 
         <div className="w-1/2 p-4 flex justify-end rounded-lg ">
@@ -256,7 +330,7 @@ export default function ProductPage() {
                  <TiArchive  size={30} className="text-blue-600" />
                 </div>
                 <div className = 'flex flex-col items-start justify-center ml-3'>
-                        <h1> ....</h1>
+                        <h1> {countAllProduct} </h1>
                         <p >สินค้าทั้งหมด</p>
                       
                  </div>
@@ -272,7 +346,7 @@ export default function ProductPage() {
                     <MdOutlineSell size={30} className="text-green-600" />
                   </div>
                   <div className = 'flex flex-col items-start justify-center ml-3'>
-                        <h1> ....</h1>
+                        <h1> {countReadyProduct}</h1>
                         <p >พร้อมขาย</p>
                       
                  </div>
@@ -285,7 +359,7 @@ export default function ProductPage() {
                  <FiAlertTriangle  size={30} className="text-yellow-800"/>
                   </div>
                   <div className = 'flex flex-col items-start justify-center ml-3'>
-                        <h1> ....</h1>
+                        <h1> {countLowProduct}</h1>
                         <p >สต็อกใกล้หมด</p>
                       
                  </div>
@@ -298,7 +372,7 @@ export default function ProductPage() {
                   <TiDeleteOutline  size={30} className="text-red-800"/>
                   </div>
                   <div className = 'flex flex-col items-start justify-center ml-3'>
-                        <h1> ....  </h1>
+                        <h1> {countOutofstockProduct} </h1>
                         <p >หมดสต็อก</p>
                       
                  </div>
@@ -316,7 +390,7 @@ export default function ProductPage() {
                     type="text"
                     placeholder="ค้นหาสินค้า..."
                     value={search}
-                    onChange={(e) => setSearch(e.target.value)}
+                    onChange={handleSearchChange}
                     className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-[#E0EBF8]  "
                   />
               </div>
@@ -326,21 +400,34 @@ export default function ProductPage() {
                     <div className=' text-2xl text-gray-400 flex items-center justify-center'> 
                           |
                         </div>
-                      <button  className={`px-4 py-2 rounded-md font-semibold transition-all bg-[#0F2235] text-white  flex items-center justify-center  `}>
+                      <button  onClick={() => handleCategoryChange("ALL")}
+                      className={`px-4 py-2 rounded-md font-semibold transition-allflex items-center justify-center ${categoryFilter === "ALL"
+                                  ? "bg-[#0F2235] text-white"
+                                  : "text-gray-400 hover:bg-gray-200"}  `}>
                        ทั้งหมด
                     </button>
                  
-                
-                  
-                      <button  className={`px-4 py-2 rounded-md font-semibold hover:bg-gray-200  text-gray-400  w-full`}>
+                      <button  onClick={() => handleCategoryChange("BREAD")}
+                      className={`px-4 py-2 rounded-md font-semibold  w-full 
+                        ${categoryFilter === "BREAD"
+                          ? "bg-[#0F2235] text-white"
+                          : "text-gray-400 hover:bg-gray-200"}`}>
                           Bread
                       </button>
                  
-                      <button  className={`px-4 py-2 rounded-md font-semibold  text-gray-400  hover:bg-gray-200  w-full`}>
+                      <button onClick={() => handleCategoryChange("CAKE")}
+                      className={`px-4 py-2 rounded-md font-semibold   w-full 
+                        ${categoryFilter === "CAKE"
+                          ? "bg-[#0F2235] text-white"
+                          : "text-gray-400 hover:bg-gray-200"}`}>
                           Cake
                       </button>
                  
-                      <button  className={`px-4 py-2 rounded-md font-semibold  text-gray-400  hover:bg-gray-200  w-full`}>
+                      <button onClick={() => handleCategoryChange("COOKIE")}
+                      className={`px-4 py-2 rounded-md font-semibold    w-full 
+                        ${categoryFilter === "COOKIE"
+                          ? "bg-[#0F2235] text-white"
+                          : "text-gray-400 hover:bg-gray-200"}`}>
                           Cookie
                       </button>
               </div> 
@@ -354,9 +441,10 @@ export default function ProductPage() {
 
     
       {/* (table ) */}
-      <div className="bg-white  rounded-xl ">
-  
-        <table className="min-w-full table-fixed border  border-gray-300 rounded-lg overflow-hidden">
+      {/* overflow-x-auto ให้ table scroll แนวนอนแทนบีบ column */}
+      <div className="bg-white rounded-xl overflow-x-auto">
+
+        <table className="min-w-[900px] w-full border border-gray-300 rounded-lg overflow-hidden">
           <thead className="bg-[#0F2235]  text-white">
             <tr>
               <th className="px-4 py-3  text-center text-sm  font-semibold">
@@ -371,7 +459,7 @@ export default function ProductPage() {
               <th className="px-6 py-3 text-center text-sm font-semibold">
                 stock
               </th>
-              <th className="px-6 py-3 text-center text-sm font-semibold">
+              <th className="px-4 py-3 text-center text-sm font-semibold w-40 max-w-[160px]">
                 description
               </th>
               <th className="px-6 py-3 text-center text-sm font-semibold">
@@ -385,46 +473,60 @@ export default function ProductPage() {
               </th>
               
               
-              <th className=" py-3 text-center text-sm font-semibold">
-                Image 
+              <th className="py-3 text-center text-sm font-semibold w-24 min-w-[96px]">
+                Image
               </th>
-              <th className="px-6 py-3 text-center text-sm font-semibold">
+              <th className="px-4 py-3 text-center text-sm font-semibold min-w-[160px]">
                 Functions
               </th>
             </tr>
           </thead>
 
           <tbody className="divide-y divide-gray-200">
-          {products.map((product,index) => (
+
+          {pagedProducts.length === 0 ? (
+            <tr>
+              <td colSpan="10" className="py-6 text-gray-400 text-center">
+                ไม่มีข้อมูลสินค้า
+              </td>
+            </tr>
+          ) : pagedProducts.map((product, index) => (
 
             console.log("สินค้า",product),
 
             <tr key={product.id} className="border-t  text-center  hover:bg-gray-50">
-              <td className="px-4 py-2">{index + 1}</td> 
+              <td className="px-4 py-2">{(currentPage - 1) * PAGE_SIZE + index + 1}</td>
               <td className="px-4 py-2">{product.name}</td>
               <td className="px-4 py-2">{product.price}</td>
               <td className="px-4 py-2">{product.stock}</td>
-              <td className="px-4 py-2">{product.description}</td>
+              <td className="px-4 py-2 w-40 max-w-[160px]">
+                <p className="break-words whitespace-normal">{product.description}</p>
+              </td>
               <td className="px-4 py-2">{boxMap[product.category] || (<div className="p-4 bg-gray-100 border">  ไม่พบค่า</div>)}</td>
               <td className="px-4 py-2">{renderStockBox(product.stock) || (<div className="p-4 bg-gray-100 border">  ไม่พบค่า</div>)}</td>
               
               <td className="px-4 py-2">{product.expiryDate}</td>
-              <td className="px-3 py-2"><img
-                src={`http://localhost:8080/${product.imageUrl}`}
-                alt={product.name}
-                className="w-20 h-20 object-cover rounded-md border"
-                
-              /></td>
+              <td className="px-3 py-2">
+                {product.imageUrl
+                  ? <img src={`http://localhost:8080/${product.imageUrl}`} alt={product.name} className="w-20 h-20 object-cover rounded-md border" />
+                  : <div className="w-20 h-20 bg-gray-100 rounded-md border flex items-center justify-center text-gray-300 text-xs">No img</div>
+                }
+              </td>
               <td className="px-4 py-2 ">
                 <div className="flex justify-center gap-2">
-                  <button className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700">
+                  <button onClick={() => handleDeleteProduct(product.id, product.name)}
+                  className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700">
                     ลบ
                   </button>
-                  <button className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                  <button className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700" 
+                onClick={() =>{
+                  router.push(`/admin/products/editproduct/${product.id}`)
+                }}>
                     แก้ไข
                   </button>
                   <button className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                   
+                 
                   onClick={() =>{
                     setSelectedProduct(product);
                     setShowPreview(true);
@@ -441,7 +543,44 @@ export default function ProductPage() {
         </table>
     </div>
 
-      
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4 px-2">
+          <p className="text-sm text-gray-500">
+            แสดง {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filteredProducts.length)} จาก {filteredProducts.length} รายการ
+          </p>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1.5 rounded-lg text-sm border border-gray-300 disabled:opacity-40 hover:bg-gray-100"
+            >
+              ← ก่อนหน้า
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`px-3 py-1.5 rounded-lg text-sm border ${
+                  currentPage === page
+                    ? 'bg-[#0F2235] text-white border-[#0F2235]'
+                    : 'border-gray-300 hover:bg-gray-100'
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+            <button
+              onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1.5 rounded-lg text-sm border border-gray-300 disabled:opacity-40 hover:bg-gray-100"
+            >
+              ถัดไป →
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* (Modal แสดง Preview ก่อนเพิ่มสินค้า) */}
       {showPreviewOfAddProduct && (
        <div
@@ -489,6 +628,56 @@ export default function ProductPage() {
         </div>
       )}
 
+
+
+      {/* (Modal แสดง การแก้ไขข้อมูลสินค้า */}
+      {showEditProduct && selectedProduct && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
+          onClick={() => setShowPreview(false)}
+        >
+          <div
+            className="bg-white p-6 rounded-xl w-96 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+          <div className="bg-white rounded-lg shadow border overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+
+              <div className="h-48 flex items-center justify-center bg-gray-100">
+                {selectedProduct.imageUrl
+                  ? <img src={`http://localhost:8080/${selectedProduct.imageUrl}`} alt={selectedProduct.name} className="h-full w-full object-cover" />
+                  : <div className="text-gray-300 text-sm">No image</div>
+                }
+              </div>
+
+
+              <div className="p-4">
+                  <h3 className="text-lg font-bold text-gray-800 truncate">{selectedProduct.name}</h3>
+                  <p className="text-sm text-gray-500 h-10 overflow-hidden">{selectedProduct.description}</p>
+
+                  <div className="flex justify-between items-center my-3">
+                    <span className="text-2xl font-bold text-blue-600">฿{selectedProduct.price.toLocaleString()}</span>
+                    <span className="text-xs font-medium bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                      คงเหลือ {selectedProduct.stock}
+                    </span>
+                  </div>
+
+              </div>
+
+            </div>
+            <div className="flex justify-end gap-2 mt-5">
+              <button
+                onClick={() => setshowEditProduct(false)}
+                className="px-4 py-2 bg-gray-300 rounded"
+              >
+                ปิด
+              </button>
+            
+            </div>
+          </div>
+        </div>
+      )}
+
+
       {/* (Modal แสดง Preview ข้อมูลสินค้าในตาราง) */}
       {showPreview && selectedProduct && (
         <div
@@ -500,27 +689,26 @@ export default function ProductPage() {
             onClick={(e) => e.stopPropagation()}
           >
           <div className="bg-white rounded-lg shadow border overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-              
+
               <div className="h-48 flex items-center justify-center bg-gray-100">
-                <img 
-                  src={`http://localhost:8080/${selectedProduct.imageUrl}`} 
-                  alt={selectedProduct.name}
-                  className="h-full w-full object-cover"
-                />
+                {selectedProduct.imageUrl
+                  ? <img src={`http://localhost:8080/${selectedProduct.imageUrl}`} alt={selectedProduct.name} className="h-full w-full object-cover" />
+                  : <div className="text-gray-300 text-sm">No image</div>
+                }
               </div>
 
-              
+
               <div className="p-4">
                   <h3 className="text-lg font-bold text-gray-800 truncate">{selectedProduct.name}</h3>
                   <p className="text-sm text-gray-500 h-10 overflow-hidden">{selectedProduct.description}</p>
-                  
+
                   <div className="flex justify-between items-center my-3">
                     <span className="text-2xl font-bold text-blue-600">฿{selectedProduct.price.toLocaleString()}</span>
                     <span className="text-xs font-medium bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
                       คงเหลือ {selectedProduct.stock}
                     </span>
                   </div>
-                  
+
               </div>
 
             </div>
@@ -536,6 +724,44 @@ export default function ProductPage() {
           </div>
         </div>
       )}
+      {/* [Claude] Modal ยืนยันการลบสินค้า */}
+      {deleteModal.open && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setDeleteModal({ open: false, productId: null, productName: '' })}>
+          <div className="bg-white rounded-2xl shadow-xl w-80 p-6" onClick={e => e.stopPropagation()}>
+
+            {/* ไอคอน */}
+            <div className="flex justify-center mb-4">
+              <div className="bg-red-100 p-4 rounded-full">
+                <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2" />
+                </svg>
+              </div>
+            </div>
+
+            <h3 className="text-lg font-bold text-gray-800 text-center mb-1">ลบสินค้า</h3>
+            <p className="text-sm text-gray-500 text-center mb-6">
+              คุณต้องการลบ <span className="font-semibold text-gray-800">{deleteModal.productName}</span> ใช่หรือไม่?
+              <br />
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteModal({ open: false, productId: null, productName: '' })}
+                className="flex-1 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 transition font-medium text-sm">
+                ยกเลิก
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="flex-1 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white transition font-medium text-sm">
+                ลบ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* (Modal สำหรับ Crop รูปภาพ) */}
       {showCrop && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">

@@ -14,4 +14,5 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     long countByCategory(ProductCategory category);//นับตามประเภท
     long countByStockGreaterThan(int stock);//นับตามจำนวนสินค้าในสต็อกที่มากกว่า 
     long countByExpiryDateBefore(LocalDate date);//นับตามวันที่หมดอายุที่น้อยกว่าที่กำหนด
+  
 }

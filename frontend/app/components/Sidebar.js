@@ -14,7 +14,7 @@ import { VscArchive } from "react-icons/vsc";
 
 // 2. รับ props 'isOpen' และ 'setIsOpen'
 export default function Sidebar({ isOpen, setIsOpen }) {
-  const { user, loading } = useAuth();
+  const { user, loading,logout } = useAuth();
   console.log("Sidebar User:", user);
   return (
     // 3. เพิ่ม/แก้ไข ClassName ให้ Responsive
@@ -51,12 +51,13 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           Product
         </Link>
 
-        <Link href="/home/product" className="flex items-center p-2 rounded-lg hover:bg-gray-700">
+        {/* [Claude] แก้ path จาก /home/product → /history */}
+        <Link href="/history" className="flex items-center p-2 rounded-lg hover:bg-gray-700">
             <GrHistory className="mr-3" />
           History
         </Link>
 
-        <Link href="/home/product" className="flex items-center p-2 rounded-lg hover:bg-gray-700">
+        <Link href="/profile" className="flex items-center p-2 rounded-lg hover:bg-gray-700">
             <MdPerson className="mr-3" />
           Profile
         </Link>
@@ -85,11 +86,11 @@ export default function Sidebar({ isOpen, setIsOpen }) {
       </nav>
 
       <div className="p-4 border-t border-gray-700">
-        <Link href="/login" className="flex items-center p-2 rounded-lg hover:bg-gray-700">
+        <button onClick={logout} className="flex items-center p-2 rounded-lg hover:bg-gray-700 w-full">
           <FaSignOutAlt className="mr-3" />
           Logout
-        </Link>
-      </div>
+        </button>
+    </div>
     </div>
   );
 }

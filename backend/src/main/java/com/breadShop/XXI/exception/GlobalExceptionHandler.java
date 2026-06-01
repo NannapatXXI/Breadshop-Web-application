@@ -6,66 +6,74 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.server.ResponseStatusException;
 
-import com.breadShop.XXI.dto.ErrorResponse;
+import com.breadShop.XXI.dto.ApiResponse;
 
-//* เอาไว้จัดการ exception */
+/**
+ * [Claude] GlobalExceptionHandler — จัดการ exception ทุกประเภทให้คืน ApiResponse<Void> เสมอ
+ *
+ * เหตุผลที่ต้องมี:
+ *   - ถ้าไม่มีตัวนี้ Spring จะคืน error ในรูปแบบ default ที่ไม่ match กับ ApiResponse
+ *   - ทำให้ frontend รู้ว่า success=false และ message มีอะไรผิด
+ *
+ * Pattern ทุก handler: ResponseEntity<ApiResponse<Void>>
+ */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    /** ชื่อ/รหัสผ่านผิด */
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<ErrorResponse> handleBadCredentials(
-            BadCredentialsException ex) {
-
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-            .body(new ErrorResponse("Username หรือ Password ไม่ถูกต้อง"));
-    }
-
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalArgument(
-            IllegalArgumentException ex) {
-
-        return switch (ex.getMessage()) {
-            case "USER_NOT_FOUND" ->
-                ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new ErrorResponse("ไม่พบผู้ใช้ในระบบ"));
-            case "EMAIL_NOT_FOUND" ->
-            ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse("ไม่พบ Email ในระบบ"));
-
-            case "USERNAME_EXISTS" ->
-            ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse("มีชื่อผู้ใช้นี้ในระบบแล้ว"));
-
-            case "OTP_NOT_FOUND" ->
-            ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse("OTP ไม่ถูกต้อง"));
-
-            case "OTP_EXPIRED" ->
-            ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse("OTP หมดเวลา"));
-
-            case "OTP_INVALID" ->
-            ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse("OTP ไม่ถูกต้อง"));
-    
-            default ->
-                ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new ErrorResponse("ข้อมูลไม่ถูกต้อง"));
-        };
-    }
-
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleOther(Exception ex) {
-        ex.printStackTrace(); // log only
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body(new ErrorResponse("เกิดข้อผิดพลาดในระบบ"));
-    }
-
-    @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public ResponseEntity<String> handleMaxSizeException(MaxUploadSizeExceededException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleBadCredentials(BadCredentialsException ex) {
         return ResponseEntity
-                .badRequest()
-                .body("File too large!");
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.error("Username หรือ Password ไม่ถูกต้อง"));
+    }
+
+    /** 404, 403 ที่โยนจาก service ด้วย ResponseStatusException */
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ApiResponse<Void>> handleResponseStatus(ResponseStatusException ex) {
+        return ResponseEntity
+                .status(ex.getStatusCode())
+                .body(ApiResponse.error(ex.getReason()));
+    }
+
+    /**
+     * IllegalArgumentException — ใช้ทั่วโปรเจกต์แทน custom exception
+     * ค่า message ที่กำหนดไว้เป็น key เพื่อแปลเป็น error message ภาษาไทย
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<Void>> handleIllegalArgument(IllegalArgumentException ex) {
+        String msg = switch (ex.getMessage()) {
+            case "USER_NOT_FOUND"    -> "ไม่พบผู้ใช้ในระบบ";
+            case "EMAIL_NOT_FOUND"   -> "ไม่พบ Email ในระบบ";
+            case "USERNAME_EXISTS"   -> "มีชื่อผู้ใช้นี้ในระบบแล้ว";
+            case "EMAIL_EXISTS"      -> "มี Email นี้ในระบบแล้ว";
+            case "OTP_NOT_FOUND"     -> "OTP ไม่ถูกต้อง";
+            case "OTP_EXPIRED"       -> "OTP หมดเวลา";
+            case "OTP_INVALID"       -> "OTP ไม่ถูกต้อง";
+            case "Product not found" -> "ไม่พบสินค้า";
+            default                  -> "ข้อมูลไม่ถูกต้อง: " + ex.getMessage();
+        };
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(msg));
+    }
+
+    /** ไฟล์ใหญ่เกินกำหนด */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMaxSize(MaxUploadSizeExceededException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error("ไฟล์มีขนาดใหญ่เกินกำหนด (สูงสุด 50MB)"));
+    }
+
+    /** Catch-all — exception ที่ไม่ได้ handle ไว้โดยเฉพาะ */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<Void>> handleOther(Exception ex) {
+        ex.printStackTrace(); // log เพื่อ debug ใน console
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("เกิดข้อผิดพลาดในระบบ"));
     }
 }

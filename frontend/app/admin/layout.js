@@ -32,11 +32,12 @@ export default function AppLayout({ children }) {
           />
 
           {/* (โค้ด Navbar และ main ของคุณ - เหมือนเดิม) */}
-          <div className="flex-1 flex flex-col">
-            <Navbar 
-              setIsOpen={setIsSidebarOpen} 
+          {/* min-w-0 ป้องกัน flex child ดัน sidebar แคบเมื่อ content กว้างเกิน */}
+          <div className="flex-1 min-w-0 flex flex-col">
+            <Navbar
+              setIsOpen={setIsSidebarOpen}
             />
-            <main className="flex-1 p-6 overflow-y-auto">
+            <main className="flex-1 p-6 overflow-y-auto overflow-x-hidden">
               {children}
             </main>
           </div>

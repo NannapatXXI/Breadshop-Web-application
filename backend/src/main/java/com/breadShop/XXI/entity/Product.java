@@ -1,6 +1,11 @@
 package com.breadShop.XXI.entity;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -19,28 +24,42 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String name;            // ชื่อขนม
-    private Double price;           // ราคา
-    private Integer stock;          // จำนวนเหลือ
+    @Column(nullable = false)
+    private String name;
+
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal price;           // ✅ เปลี่ยนจาก Double
+
+    @Column(nullable = false)
+    private Integer stock;
 
     @Column(length = 1000)
-    private String description;     // รายละเอียด
+    private String description;
 
-    private String imageUrl;        // path รูป
+    @Column(nullable = true)
+    private String imageUrl;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)           // ✅ เพิ่ม @Column
     private ProductCategory category;
-    private LocalDate expiryDate;   // วันหมดอายุ
 
-    // ===== Constructor เปล่า =====
-    public Product() {
-    }
+    @Column(nullable = true)
+    private LocalDate expiryDate;
 
-    // ===== Constructor เต็ม =====
-    public Product(Long id, String name, Double price, Integer stock,
+    @CreationTimestamp                  // ✅ เพิ่มใหม่
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp                    // ✅ เพิ่มใหม่
+    @Column(nullable = false)
+    private LocalDateTime updatedAt;
+
+    // Constructors
+    public Product() {}
+
+    public Product(String name, BigDecimal price, Integer stock,
                    String description, String imageUrl,
                    ProductCategory category, LocalDate expiryDate) {
-        this.id = id;
         this.name = name;
         this.price = price;
         this.stock = stock;
@@ -50,69 +69,33 @@ public class Product {
         this.expiryDate = expiryDate;
     }
 
-    // ===== Getter & Setter =====
+    // Getters & Setters
+    public Long getId() { return id; }
 
-    public Long getId() {
-        return id;
-    }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public BigDecimal getPrice() { return price; }
+    public void setPrice(BigDecimal price) { this.price = price; }
 
-    public String getName() {
-        return name;
-    }
+    public Integer getStock() { return stock; }
+    public void setStock(Integer stock) { this.stock = stock; }
 
-    public void setName(String name) {
-        this.name = name;
-    }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
 
-    public Double getPrice() {
-        return price;
-    }
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 
-    public void setPrice(Double price) {
-        this.price = price;
-    }
+    public ProductCategory getCategory() { return category; }
+    public void setCategory(ProductCategory category) { this.category = category; }
 
-    public Integer getStock() {
-        return stock;
-    }
+    public LocalDate getExpiryDate() { return expiryDate; }
+    public void setExpiryDate(LocalDate expiryDate) { this.expiryDate = expiryDate; }
 
-    public void setStock(Integer stock) {
-        this.stock = stock;
-    }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public String getImageUrl() {
-        return imageUrl;
-    }
-
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
-    }
-
-    public ProductCategory getCategory() {
-        return category;
-    }
-
-    public void setCategory(ProductCategory category) {
-        this.category = category;
-    }
-
-    public LocalDate getExpiryDate() {
-        return expiryDate;
-    }
-
-    public void setExpiryDate(LocalDate expiryDate) {
-        this.expiryDate = expiryDate;
-    }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

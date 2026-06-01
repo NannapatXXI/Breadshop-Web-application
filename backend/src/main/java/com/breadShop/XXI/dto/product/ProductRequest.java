@@ -1,5 +1,6 @@
 package com.breadShop.XXI.dto.product;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import org.springframework.web.multipart.MultipartFile;
@@ -12,7 +13,7 @@ import com.breadShop.XXI.entity.ProductCategory;
 public class ProductRequest {
 
     private String name;
-    private Double price;
+    private BigDecimal price;
     private Integer stock;
     private String description;
     private ProductCategory category;
@@ -29,11 +30,11 @@ public class ProductRequest {
         this.name = name;
     }
 
-    public Double getPrice() {
+    public BigDecimal getPrice() {
         return price;
     }
 
-    public void setPrice(Double price) {
+    public void setPrice(BigDecimal price) {
         this.price = price;
     }
 

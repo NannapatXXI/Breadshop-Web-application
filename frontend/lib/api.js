@@ -1,47 +1,76 @@
-import axios from "axios"; //ใช้สำหรับ:ดัก 401 ,refresh token ,retry request
-import Router from "next/router";
+import axios from "axios";
 
-// สร้าง axios instance ที่ตั้งค่าเริ่มต้น
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
   headers: {
     "Content-Type": "application/json",
   },
-  withCredentials: true, // ส่ง cookie ไป backend
+  withCredentials: true,
 });
 
+function redirectToLogin() {
+  if (typeof window !== "undefined") {
+    window.location.href = "/login";
+  }
+}
 
+/**
+ * [Claude] Response Interceptor 1 — ApiResponse unwrapper
+ *
+ * Backend ทุก endpoint คืน format: { success, message, data }
+ * interceptor นี้ auto-unwrap .data ออกมาก่อน เพื่อให้ caller ยังใช้ res.data ได้เหมือนเดิม
+ *
+ * ก่อน: res.data = { success: true, message: "...", data: [...] }
+ * หลัง: res.data = [...]   ← unwrap แล้ว
+ *
+ * ข้อยกเว้น:
+ *   - endpoint ที่ไม่ใช้ ApiResponse (เช่น /google/callback redirect) → ผ่านตามปกติ
+ *   - ถ้า backend คืน success=false → throw error ให้ interceptor error จัดการต่อ
+ */
 api.interceptors.response.use(
-    (res) => res,
-    async (err) => {
-      const originalRequest = err.config;
-  
-      if (
-        ![401, 403].includes(err.response?.status) ||
-        originalRequest._retry
-      ) {
+  (res) => {
+    const body = res.data;
+    // ตรวจว่าเป็น ApiResponse format ไหม (มี success field)
+    if (body && typeof body.success === 'boolean') {
+      if (!body.success) {
+        // success=false → throw เพื่อให้ catch ใน caller จัดการ
+        const err = new Error(body.message || 'เกิดข้อผิดพลาด');
+        err.response = res;
         return Promise.reject(err);
       }
-  
-      // ป้องกัน infinite loop
-      if (originalRequest.url.includes("/auth/refresh")) {
-        return Promise.reject(err);
-      }
-  
-      originalRequest._retry = true;
-  
-      try {
-        await api.post("/api/v1/auth/refresh");
-  
-        console.log("Token refreshed successfully");
-  
-        return api(originalRequest);
-      } catch (e) {
-        Router.push("/login");
-        return Promise.reject(e);
-      }
+      // unwrap: แทนที่ res.data ด้วย body.data จริงๆ
+      res.data = body.data;
     }
-  );
-  
+    return res;
+  },
+  async (err) => {
+    const originalRequest = err.config;
+    const status = err.response?.status;
+
+    // 403 = ไม่มีสิทธิ์ (เช่น user เรียก admin API) — ไม่ refresh, ไม่เปลี่ยน session
+    if (status === 403) {
+      return Promise.reject(err);
+    }
+
+    if (status !== 401 || originalRequest._retry) {
+      return Promise.reject(err);
+    }
+
+    if (originalRequest.url?.includes("/auth/refresh")) {
+      redirectToLogin();
+      return Promise.reject(err);
+    }
+
+    originalRequest._retry = true;
+
+    try {
+      await api.post("/api/v1/auth/refresh");
+      return api(originalRequest);
+    } catch (e) {
+      redirectToLogin();
+      return Promise.reject(e);
+    }
+  }
+);
 
 export default api;

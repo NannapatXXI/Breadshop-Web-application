@@ -52,6 +52,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails =
                         userDetailsService.loadUserByUsername(email);
+                      
 
                 if (jwtService.isTokenValid(jwt, userDetails)) {
                     UsernamePasswordAuthenticationToken auth =
@@ -93,18 +94,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/api/v1/auth/refresh",
             "/api/v1/auth/send-OTP-mail",
             "/api/v1/auth/verify-otp",
-            "/api/v1/auth/reset-password"
-        ).contains(path);
+            "/api/v1/auth/reset-password",
+            "/api/v1/products"
+        ).contains(path) || path.startsWith("/api/v1/products/");
     }
     
     private String getAccessTokenFromCookie(HttpServletRequest request) {
-        if (request.getCookies() == null) return null;
-    
-        for (var cookie : request.getCookies()) {
-            if ("access_token".equals(cookie.getName())) {
-                return cookie.getValue();
+       
+        if (request.getCookies() != null) {
+            for (var cookie : request.getCookies()) {
+                if ("access_token".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
             }
         }
+    
+        // 2. ถ้าไม่มี Cookie ให้เช็ค Authorization Header
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
+    
         return null;
     }
     

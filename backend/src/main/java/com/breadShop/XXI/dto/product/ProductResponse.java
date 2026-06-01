@@ -1,5 +1,6 @@
 package com.breadShop.XXI.dto.product;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import com.breadShop.XXI.entity.ProductCategory;
@@ -10,16 +11,16 @@ import com.breadShop.XXI.entity.ProductCategory;
 public class ProductResponse {
 
 
-    private Long id;
-    private String name;
-    private Double price;
-    private Integer stock;
-    private String description;
-    private String imageUrl;
-    private ProductCategory category;
-    private LocalDate expiryDate;
-
-    public ProductResponse(Long id, String name, Double price,
+    private final Long id;
+    private final String name;
+    private final BigDecimal price;
+    private final Integer stock;
+    private final String description;
+    private final String imageUrl;
+    private final ProductCategory category;   // หรือ type จริงของคุณ
+    private final LocalDate expiryDate;
+    
+    public ProductResponse(Long id, String name, BigDecimal price,
                            Integer stock, String description,
                            String imageUrl, ProductCategory category,
                            LocalDate expiryDate) {
@@ -37,7 +38,7 @@ public class ProductResponse {
 
     public Long getId() { return id; }
     public String getName() { return name; }
-    public Double getPrice() { return price; }
+    public BigDecimal getPrice() { return price; }
     public Integer getStock() { return stock; }
     public String getDescription() { return description; }
     public String getImageUrl() { return imageUrl; }

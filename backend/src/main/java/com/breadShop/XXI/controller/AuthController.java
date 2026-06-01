@@ -11,218 +11,296 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.breadShop.XXI.dto.AuthenticationResponse;
+import com.breadShop.XXI.dto.ApiResponse;
 import com.breadShop.XXI.dto.CheckEmailRequest;
 import com.breadShop.XXI.dto.LoginRequest;
 import com.breadShop.XXI.dto.RegisterRequest;
 import com.breadShop.XXI.dto.ResetPasswordRequest;
+import com.breadShop.XXI.dto.UpdateProfileRequest;
 import com.breadShop.XXI.dto.VerifyOtpRequest;
+import com.breadShop.XXI.entity.RefreshToken;
 import com.breadShop.XXI.entity.User;
 import com.breadShop.XXI.repository.UserRepository;
 import com.breadShop.XXI.service.AuthService;
 import com.breadShop.XXI.service.GoogleAuthService;
 import com.breadShop.XXI.service.Mailservice;
+import com.breadShop.XXI.service.RefreshTokenService;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
-
+/**
+ * [Claude] AuthController — Authentication & Authorization
+ * path: /api/v1/auth/**
+ *
+ * Token flow:
+ *   access_token  → cookie httpOnly, อายุ 15 นาที, path=/
+ *   refresh_token → cookie httpOnly, อายุ 7 วัน, path=/api/v1/auth (จำกัดเฉพาะ /refresh)
+ *
+ * หมายเหตุ: endpoint /login /logout /refresh /google/callback คืน ResponseEntity<ApiResponse<T>>
+ * เพราะต้องแนบ Set-Cookie header ไปพร้อมกัน ทำผ่าน factory method ของ ResponseEntity เท่านั้น
+ */
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthController {
 
-    private final AuthService authService;
-    private final GoogleAuthService googleAuthService;
-    private final UserRepository userRepository;
-    private final Mailservice mailservice;
-   
-    
+    private final AuthService          authService;
+    private final GoogleAuthService    googleAuthService;
+    private final UserRepository       userRepository;
+    private final Mailservice          mailservice;
+    private final RefreshTokenService  refreshTokenService;
 
-    public AuthController(AuthService authService, GoogleAuthService googleAuthService, UserRepository userRepository,Mailservice mailservice) {
-        this.authService = authService;
-        this.googleAuthService = googleAuthService;
-        this.userRepository = userRepository;
-        this.mailservice = mailservice;
-       
+    public AuthController(AuthService authService, GoogleAuthService googleAuthService,
+                          UserRepository userRepository, Mailservice mailservice,
+                          RefreshTokenService refreshTokenService) {
+        this.authService         = authService;
+        this.googleAuthService   = googleAuthService;
+        this.userRepository      = userRepository;
+        this.mailservice         = mailservice;
+        this.refreshTokenService = refreshTokenService;
     }
 
-    // ------------------ Refresh Token ------------------
+    // ═══════════════════════════════════════════════════════════════
+    //  LOGIN / LOGOUT / REFRESH
+    // ═══════════════════════════════════════════════════════════════
+
     /**
-     * เอาไว้ให้ refresh access token
-     * @param request 
-     * @return
+     * POST /api/v1/auth/login
+     * รับ email+password → ออก access_token + refresh_token เป็น httpOnly cookie
+     * ไม่ return token ใน body เพราะ httpOnly cookie ปลอดภัยกว่า localStorage
      */
-    @PostMapping("/refresh")
-    public ResponseEntity<?> refresh(HttpServletRequest request) {
-
-       String newAccessToken = authService.refreshAccessToken(request);
-
-        ResponseCookie accessCookie = ResponseCookie
-            .from("access_token", newAccessToken)
-            .httpOnly(true)
-            .path("/")
-            .maxAge(15 * 60)
-            .build();
-
-        return ResponseEntity.ok()
-            .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
-            .body(Map.of("message", "refreshed"));
-    }
-
-    @GetMapping("/me")
-    public ResponseEntity<?> me(@AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(
-            Map.of(
-                "email", userDetails.getUsername(),
-                "username", userDetails.getUsername(),
-                "roles", userDetails.getAuthorities()
-            )
-        );
-    }
-    
-
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<ApiResponse<Void>> login(@RequestBody LoginRequest loginRequest) {
 
-        AuthenticationResponse tokens = authService.loginUser(loginRequest);
+        var tokens = authService.loginUser(loginRequest);
 
-        // access token cookie
         ResponseCookie accessCookie = ResponseCookie.from("access_token", tokens.accessToken())
-                .httpOnly(true)
-                .secure(false) // true เมื่อขึ้น https
-                .path("/")
-                .maxAge(15 * 60) //access token อยู่ได้ 15 นาที
-                .sameSite("Lax")
-                .build();
+                .httpOnly(true).secure(false).path("/").maxAge(15 * 60).sameSite("Lax").build();
 
-        // refresh token cookie
         ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", tokens.refreshToken())
-                .httpOnly(true)
-                .secure(false)
-                .path("/api/v1/auth")
-                .maxAge(7 * 24 * 60 * 60)
-                .sameSite("Lax")
-                .build();
+                .httpOnly(true).secure(false).path("/api/v1/auth")
+                .maxAge(7 * 24 * 60 * 60).sameSite("Lax").build();
 
+        // [Claude] ต้องใช้ ResponseEntity เพื่อแนบ Set-Cookie header
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
                 .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
-                .body(Map.of("message", "login success"));
+                .body(ApiResponse.ok("เข้าสู่ระบบสำเร็จ"));
     }
 
-    // ------------------ send OTP ------------------
-    @PostMapping("/send-OTP-mail")
-    public ResponseEntity<?> sendOtp(@RequestBody CheckEmailRequest request) {
-       
-            String token = authService.sendResetPasswordOtp(request.email());
-    
-            return ResponseEntity.ok(
-                Map.of(
-                    "message", "ส่ง OTP เรียบร้อย",
-                    "token", token
-                )
-            );
-    
-    }
-     // ------------------ verify OTP ------------------
-    @PostMapping("/verify-otp")
-    public ResponseEntity<?> verifyOtp(@RequestBody VerifyOtpRequest request) {
-
-    String token = authService.verifyOtp(
-        request.token(),
-        request.otp()
-    );
-    System.out.println("ผ่านการ verify OTP แล้ว ได้ token สำหรับ reset password: " + token);
-
-    return ResponseEntity.ok(
-        Map.of(
-            "message", "OTP ถูกต้อง",
-            "token", token
-        )
-    );
-}
-// ------------------ reset password ------------------
-@PostMapping("/reset-password")
-public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
-    authService.resetPassword(request.token(), request.newPassword());
-    return ResponseEntity.ok(
-        Map.of("message", "Password reset successfully")
-    );
-}
-     
-
-    // ------------------ Register ------------------
-    @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest) {
-        authService.registerUser(registerRequest);
-
-        return ResponseEntity.ok(
-        Map.of("message", "Register successfully")
-    );
-        
-    }
-     // ------------------ checkmail ------------------
-     /* 
-     @PostMapping("/checkmail")
-     public ResponseEntity<?> checkpass(@RequestBody CheckEmailRequest emailRequest) {
-       
-        System.out.println("เข้า checkmail แล้ว: " + emailRequest.email());
-        try {
-            return authService.checkEmail(emailRequest);
-        } catch (Exception e) {
-                    System.out.println("เกิดข้อผิดพลาดใน checkmail: " + e.getMessage());
-            throw e;
+    /**
+     * POST /api/v1/auth/logout
+     * revoke refresh_token ใน DB แล้วลบ cookie ทั้งสอง
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout(HttpServletRequest request,
+                                                     HttpServletResponse response) {
+        if (request.getCookies() != null) {
+            for (var cookie : request.getCookies()) {
+                if ("refresh_token".equals(cookie.getName())) {
+                    try {
+                        RefreshToken rt = refreshTokenService.validate(cookie.getValue());
+                        refreshTokenService.revoke(rt);
+                    } catch (Exception e) {
+                        // token หมดอายุหรือไม่มีอยู่ ไม่ต้องทำอะไร
+                    }
+                }
+            }
         }
-     }*/
 
-    // ------------------ Google Login URL ------------------
-    // endpoint ให้ frontend รับ URL
-    @GetMapping("/google")
-    public ResponseEntity<Map<String,String>> googleLogin() {
-        return ResponseEntity.ok(Map.of(
-                "url", googleAuthService.getGoogleLoginUrl()
-        ));
+        ResponseCookie clearAccess = ResponseCookie.from("access_token", "")
+                .httpOnly(true).secure(false).path("/").maxAge(0).sameSite("Lax").build();
+        ResponseCookie clearRefresh = ResponseCookie.from("refresh_token", "")
+                .httpOnly(true).secure(false).path("/api/v1/auth").maxAge(0).sameSite("Lax").build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, clearAccess.toString())
+                .header(HttpHeaders.SET_COOKIE, clearRefresh.toString())
+                .body(ApiResponse.ok("ออกจากระบบสำเร็จ"));
     }
 
+    /**
+     * POST /api/v1/auth/refresh
+     * อ่าน refresh_token จาก cookie → ออก access_token ใหม่
+     * ใช้ตอน axios interceptor ตรวจพบ 401
+     */
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<Void>> refresh(HttpServletRequest request) {
+
+        String newAccessToken = authService.refreshAccessToken(request);
+
+        ResponseCookie accessCookie = ResponseCookie.from("access_token", newAccessToken)
+                .httpOnly(true).path("/").maxAge(15 * 60).build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                .body(ApiResponse.ok("refresh สำเร็จ"));
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  USER INFO
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * GET /api/v1/auth/me
+     * คืน id, email, username, roles ของ user ที่ login อยู่
+     * frontend ใช้ใน AuthContext เพื่อ hydrate user state
+     */
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> me(
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return ResponseEntity.ok(ApiResponse.ok(Map.of(
+                "id",       user.getId(),
+                "email",    user.getEmail(),
+                "username", user.getUsername(),
+                "roles",    userDetails.getAuthorities()
+        )));
+    }
+
+    /**
+     * PUT /api/v1/auth/me
+     * แก้ไข username ของ user ปัจจุบัน
+     */
+    @PutMapping("/me")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> updateMe(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody UpdateProfileRequest request) {
+
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (request.getUsername() != null && !request.getUsername().isBlank()) {
+            user.setUsername(request.getUsername());
+        }
+        userRepository.save(user);
+
+        return ResponseEntity.ok(ApiResponse.ok("บันทึกสำเร็จ", Map.of(
+                "id",       user.getId(),
+                "email",    user.getEmail(),
+                "username", user.getUsername()
+        )));
+    }
+
+    /**
+     * GET /api/v1/auth/profile
+     * คืน email, username, role — สำหรับหน้าที่ไม่ต้องการ id
+     */
+    @GetMapping("/profile")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getProfile(
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return ResponseEntity.ok(ApiResponse.ok(Map.of(
+                "email",    user.getEmail(),
+                "username", user.getUsername(),
+                "role",     user.getRole()
+        )));
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  REGISTER
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * POST /api/v1/auth/register
+     * สมัครสมาชิก — hash password ด้วย BCrypt ใน AuthService
+     */
+    @PostMapping("/register")
+    public ResponseEntity<ApiResponse<Void>> register(@RequestBody RegisterRequest registerRequest) {
+        authService.registerUser(registerRequest);
+        return ResponseEntity.ok(ApiResponse.ok("สมัครสมาชิกสำเร็จ"));
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  OTP / RESET PASSWORD
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * POST /api/v1/auth/send-OTP-mail
+     * ส่ง OTP ไปยัง email — คืน token ที่ใช้ยืนยันใน verify-otp
+     * token นี้ไม่ใช่ JWT แต่เป็น UUID สำหรับ identify session การ reset
+     */
+    @PostMapping("/send-OTP-mail")
+    public ResponseEntity<ApiResponse<Map<String, String>>> sendOtp(
+            @RequestBody CheckEmailRequest request) {
+
+        String token = authService.sendResetPasswordOtp(request.email());
+        return ResponseEntity.ok(ApiResponse.ok("ส่ง OTP เรียบร้อย",
+                Map.of("token", token)));
+    }
+
+    /**
+     * POST /api/v1/auth/verify-otp
+     * ตรวจสอบ OTP — ถ้าถูกต้องจะคืน token ใหม่สำหรับ reset password
+     */
+    @PostMapping("/verify-otp")
+    public ResponseEntity<ApiResponse<Map<String, String>>> verifyOtp(
+            @RequestBody VerifyOtpRequest request) {
+
+        String token = authService.verifyOtp(request.token(), request.otp());
+        return ResponseEntity.ok(ApiResponse.ok("OTP ถูกต้อง",
+                Map.of("token", token)));
+    }
+
+    /**
+     * POST /api/v1/auth/reset-password
+     * เปลี่ยนรหัสผ่านใหม่ — ต้องมี token จาก verify-otp
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(
+            @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request.token(), request.newPassword());
+        return ResponseEntity.ok(ApiResponse.ok("เปลี่ยนรหัสผ่านสำเร็จ"));
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  GOOGLE LOGIN
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * GET /api/v1/auth/google
+     * คืน URL สำหรับ redirect ไป Google consent screen
+     */
+    @GetMapping("/google")
+    public ResponseEntity<ApiResponse<Map<String, String>>> googleLogin() {
+        return ResponseEntity.ok(ApiResponse.ok(
+                Map.of("url", googleAuthService.getGoogleLoginUrl())));
+    }
+
+    /**
+     * GET /api/v1/auth/google/callback
+     * Google redirect มาที่นี่พร้อม code → แลก code กับ JWT แล้ว redirect ไป frontend
+     * [Claude] endpoint นี้ทำ HTTP 302 redirect จึงไม่ใช้ ApiResponse
+     */
     @GetMapping("/google/callback")
     public ResponseEntity<?> callback(@RequestParam("code") String code) {
         try {
             String jwt = googleAuthService.handleGoogleCallback(code);
-    
+
             ResponseCookie accessCookie = ResponseCookie.from("access_token", jwt)
-                    .httpOnly(true)
-                    .secure(false)
-                    .path("/")
-                    .maxAge(15 * 60)
-                    .sameSite("Lax")
-                    .build();
-    
+                    .httpOnly(true).secure(false).path("/").maxAge(15 * 60).sameSite("Lax").build();
+
             HttpHeaders headers = new HttpHeaders();
             headers.add(HttpHeaders.SET_COOKIE, accessCookie.toString());
             headers.setLocation(URI.create("http://localhost:3000/home"));
-    
+
             return new ResponseEntity<>(headers, HttpStatus.FOUND);
-    
+
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Login Error: " + e.getMessage());
+                    .body(ApiResponse.error("Google Login Error: " + e.getMessage()));
         }
     }
-    
-
-     @GetMapping("/profile")
-    public ResponseEntity<?> getProfile(@AuthenticationPrincipal UserDetails userDetails) {
-        User user = userRepository.findByEmail(userDetails.getUsername())
-                                  .orElseThrow(() -> new RuntimeException("User not found"));
-        return ResponseEntity.ok(Map.of(
-            "email", user.getEmail(),
-            "username", user.getUsername(),
-            "role", user.getRole()
-        ));
-    }
-
 }

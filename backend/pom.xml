@@ -98,7 +98,18 @@
 		<artifactId>spring-boot-starter-mail</artifactId>
 	</dependency>
 
-	
+	<!-- [Claude] Flyway — version control สำหรับ database schema
+	     แทน ddl-auto=update ที่ Spring จัดการให้อัตโนมัติ (ไม่มี history)
+	     Flyway จะรัน SQL ใน resources/db/migration/V*.sql ตามลำดับ
+	     flyway-mysql ต้องใช้คู่กับ flyway-core สำหรับ MySQL driver -->
+	<dependency>
+		<groupId>org.flywaydb</groupId>
+		<artifactId>flyway-core</artifactId>
+	</dependency>
+	<dependency>
+		<groupId>org.flywaydb</groupId>
+		<artifactId>flyway-mysql</artifactId>
+	</dependency>
 
 
 	</dependencies>

@@ -57,7 +57,7 @@ export default function ProductPage() {
       
       const res = await getproduct();
       console.log(res.data);
-
+     
       setProducts(res.data);
   
     } catch (err) {
@@ -78,17 +78,6 @@ export default function ProductPage() {
   };
   
 
-  const handlegetproduct = async () => {
-  
-    try {
-      
-      const res = await getproduct();
-      console.log(res.data);
-  
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   
   // (Logic Functions - เหมือนเดิม)
@@ -134,35 +123,7 @@ export default function ProductPage() {
     toast.error("เพิ่มสินค้าไม่สำเร็จ");
   }
   };
-  
-  const boxMap = {
-    "CAKE": (
-      <div className="p-4 bg-blue-200 border rounded-lg shadow-md transition duration-150">
-        CAKE 
-      </div>
-    ),
-    "BREAD": (
-      <div className="p-4 bg-green-100 border rounded-lg shadow-md transition duration-150">
-        BREAD 
-      </div>
-    ),
-    "COOKIE": (
-      <div className="p-4 bg-yellow-100 border rounded-lg shadow-md transition duration-150">
-        COOKIE 
-      </div>
-    )
-  };
 
-  const handleDeleteProduct = (id) => {
-    if (confirm('คุณต้องการลบสินค้านี้ใช่หรือไม่?')) {
-      setProducts(products.filter(p => p.id !== id));
-    }
-  };
-
-  const handleSelectProduct = (product) => {
-    console.log("Selected product:", product);
-    addToCart(); 
-  };
 
   
   const getCroppedImg = (imageSrc, crop) => {
@@ -215,13 +176,7 @@ export default function ProductPage() {
           <p className="text-gray-500">จัดการสินค้าของคุณ</p>
         </div>
 
-        <div className="w-1/2 p-4 flex justify-end rounded-lg ">
-            <button className="px-4 py-2  h-10 bg-[#0F2235] text-white font-semibold rounded-lg shadow-md hover:bg-blue-500 transition duration-150">
-              + add Product
-              </button>
-         
-        </div>
-
+      
       </div>
 
       {/* ส่วนสลับโหมด (Mode Toggle) + ปุ่มเทส */}
@@ -288,13 +243,14 @@ export default function ProductPage() {
               </div>
             </div>
             <div className='flex justify-end'>
-                <button  onClick={() => router.push("/admin/products")} className="px-4 py-2 mr-4 h-10 bg-[#ee3e3e] text-white font-semibold rounded-lg shadow-md hover:bg-blue-500 transition duration-150">
-                  back
+                <button  onClick={() => router.push("/admin/products")} 
+                 className="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
+                  ยกเลิก
                   </button>
          
                 <button type="button" 
                 onClick={() => setShowPreviewOfAddProduct(true)}
-                    className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition duration-150"
+                     className="px-5 py-2 ml-3 bg-[#0F2235] text-white rounded-lg hover:bg-blue-600 transition"
                   >
                     เพิ่มสินค้า
                 </button>

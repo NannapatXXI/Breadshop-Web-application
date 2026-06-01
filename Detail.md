@@ -24,8 +24,30 @@ list debug
 next-step
 -ทำเรื่อง token กับ cookie ให้เสร็จ แล้วก็เส้น Api และการจัดการ exception ต่างๆ
 -แก้เส้น Api หน้าเว็บให้ไปร่วมกันเพื่อให้รู้ว่า token หมดอายุ
+-เอาข้อมูล order ออกมาโชว์
 
 
 
 Successful
 - accessToken refresh token  cookie เสร็จแล้ว
+
+กลับมา review code  #pass
+-order
+-orderline
+-product
+-useraddress 
+-promotion
+
+test api 
+- pass line order in admin
+
+
+สิ่งที่ควรทำต่อ (ยังไม่ทำหรือทำบางส่วน)
+-Logout จริง — ลบ access_token / refresh_token + setUser(null) #pass 
+-เหลือ AuthProvider ชั้นเดียว (เอาออกจาก layout ย่อย)
+-/me ใช้ AbortController กัน race
+-Dashboard user อย่าเรียก getorders() จาก admin ถ้า user ธรรมดาเข้าได้
+-เพิ่ม field sku ใน Product ถ้าต้องการ snapshot ใน order line
+
+
+-กลับมาทำหน้า editProduct ตอนนี้ api การดึงข้อมูลจาก id ใช้ได้แล้ว

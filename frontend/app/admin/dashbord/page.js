@@ -9,16 +9,22 @@ import { MdOutlineAttachMoney } from "react-icons/md";
 import { BiChevronDownSquare,BiGroup,BiMessageSquareX } from "react-icons/bi";
 import SalesChart from "../../components/SalesChart";
 import CategoryDonutChart from "../../components/CategoryDonutChart";
+import { getorders } from "@/services/auth.service";
+import api from "@/lib/api"; // [Claude] ใช้ดึง summary และ top products
+
+
 
 export default function HomePage() {
   
   const [active, setActive] = useState("A");
   const { addToCart } = useCart();
-  const { user, loading } = useAuth(); // ดึง User มาดูด้วย
+  const { user, loading } = useAuth();
   const [mail, setMail] = useState("");
   const [count, setCount] = useState(0);
-
-
+  const [categoryFilter, setcategoryFilter] = useState("");
+  const [orders, setOrders] = useState([]);
+  const [summary, setSummary] = useState(null);       // [Claude] ข้อมูล summary cards
+  const [topProducts, setTopProducts] = useState([]); // [Claude] สินค้าขายดี
   useEffect(() => {
   
     const token = localStorage.getItem('token');
@@ -42,8 +48,36 @@ export default function HomePage() {
 
   // บันทึกลง localStorage ทุกครั้งที่ mail เปลี่ยน
   useEffect(() => {
+    fetchOrders();
+    fetchDashboard(); // [Claude] ดึง summary + top products พร้อมกัน
     localStorage.setItem("test_mail", mail);
   }, [mail]);
+
+
+
+  
+  const fetchOrders = async () => {
+    try {
+      const res = await getorders();
+      setOrders(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // [Claude] ดึง summary cards และ top products จาก dashboard endpoints
+  const fetchDashboard = async () => {
+    try {
+      const [sumRes, topRes] = await Promise.all([
+        api.get("/api/v1/admin/dashboard/summary"),
+        api.get("/api/v1/admin/dashboard/top-products"),
+      ]);
+      setSummary(sumRes.data);
+      setTopProducts(topRes.data);
+    } catch (err) {
+      console.error("dashboard fetch error", err);
+    }
+  };
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -53,6 +87,8 @@ export default function HomePage() {
     if (hour < 19) return "GOOD EVENING";
     return "สวัสดีตอนค่ำ";
   };
+
+ 
 
   const getGraph = () => {
     switch (count) {
@@ -89,6 +125,18 @@ export default function HomePage() {
     setCount(2);
   };
 
+
+  const renderStatus = (status) => {
+   
+    if (status === 'DELIVERED')  return <div className="px-3 py-1 bg-green-100 text-green-700 rounded-md">สำเร็จ</div>
+    if (status === 'PENDING')    return <div className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-md">รอดำเนินการ</div>
+    if (status === 'CONFIRMED')  return <div className="px-3 py-1 bg-blue-100 text-blue-700 rounded-md">ยืนยันแล้ว</div>
+    if (status === 'PROCESSING') return <div className="px-3 py-1 bg-purple-100 text-purple-700 rounded-md">กำลังเตรียม</div>
+    if (status === 'SHIPPED')    return <div className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-md">จัดส่งแล้ว</div>
+    if (status === 'CANCELLED')  return <div className="px-3 py-1 bg-orange-100 text-orange-700 rounded-md">ยกเลิก</div>
+    if (status === 'REFUNDED')   return <div className="px-3 py-1 bg-red-100 text-red-700 rounded-md">คืนเงิน</div>
+  };
+
   
 
   return (
@@ -103,7 +151,7 @@ export default function HomePage() {
                             {user?.username || "ผู้ใช้"}
                         </span>
                         </h1>
-                        <p className='text-sm text-gray-500'>วันนี้มีออเดอร์ใหม่ ... รายการ</p>
+                        <p className='text-sm text-gray-500'>วันนี้มีออเดอร์ใหม่ {summary?.todayOrders ?? '...'} รายการ</p>
 
 
                 </div>
@@ -113,24 +161,24 @@ export default function HomePage() {
 
                 <div className='grid grid-cols-[150px_10px_150px_10px_150px] w-1000 gap-2  items-center  justify-end h-full  '>
                     <div>
-                        <p className='text-2xl font-bold'>฿ 12,345</p>
+                        <p className='text-2xl font-bold'>฿{summary ? Number(summary.todayRevenue).toLocaleString('th-TH') : '...'}</p>
                         <h1 className='text-sm text-gray-400'>ยอดขายวันนี้</h1>
                     </div>
 
-                    <div className=' text-2xl text-gray-400 flex items-center justify-center'> 
+                    <div className=' text-2xl text-gray-400 flex items-center justify-center'>
                           |
                     </div>
 
                     <div>
-                        <p className='text-2xl font-bold'>123</p>
+                        <p className='text-2xl font-bold'>{summary?.todayOrders ?? '...'}</p>
                         <h1 className='text-sm text-gray-400'>คำสั่งซื้อวันนี้</h1>
-                    </div> 
+                    </div>
 
-                    <div className=' text-2xl text-gray-400 flex items-center justify-center'> 
+                    <div className=' text-2xl text-gray-400 flex items-center justify-center'>
                           |
                         </div>
                     <div>
-                        <p className='text-2xl font-bold'>45</p>
+                        <p className='text-2xl font-bold'>{summary?.totalCustomers ?? '...'}</p>
                         <h1 className='text-sm text-gray-400'>ลูกค้าทั้งหมด</h1>
                     </div>
                 </div>
@@ -151,16 +199,14 @@ export default function HomePage() {
                     </p>
 
                     <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
-                        ฿84,320
+                        ฿{summary ? Number(summary.monthRevenue).toLocaleString('th-TH') : '...'}
                     </h1>
 
                     <div className="flex items-center gap-2">
-                        <span className="text-green-600 font-semibold">
-                        ▲ +12.4%
+                        <span className={`font-semibold ${(summary?.monthRevenueChangePercent ?? 0) >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                          {(summary?.monthRevenueChangePercent ?? 0) >= 0 ? '▲' : '▼'} {Math.abs(summary?.monthRevenueChangePercent ?? 0).toFixed(1)}%
                         </span>
-                        <span className="text-gray-400 text-sm">
-                        vs เดือนที่แล้ว
-                        </span>
+                        <span className="text-gray-400 text-sm">vs เดือนที่แล้ว</span>
                     </div>
                     </div>
 
@@ -181,16 +227,14 @@ export default function HomePage() {
                     </p>
 
                     <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
-                        1123
+                        {summary?.totalOrders ?? '...'}
                     </h1>
 
                     <div className="flex items-center gap-2">
-                        <span className="text-green-600 font-semibold">
-                        ▲ +12.4%
+                        <span className={`font-semibold ${(summary?.totalOrdersChangePercent ?? 0) >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                          {(summary?.totalOrdersChangePercent ?? 0) >= 0 ? '▲' : '▼'} {Math.abs(summary?.totalOrdersChangePercent ?? 0).toFixed(1)}%
                         </span>
-                        <span className="text-gray-400 text-sm">
-                        vs เดือนที่แล้ว
-                        </span>
+                        <span className="text-gray-400 text-sm">vs เดือนที่แล้ว</span>
                     </div>
                     </div>
 
@@ -211,16 +255,12 @@ export default function HomePage() {
                     </p>
 
                     <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
-                        58
+                        {summary?.totalCustomers ?? '...'}
                     </h1>
 
                     <div className="flex items-center gap-2">
-                        <span className="text-green-600 font-semibold">
-                        ▲ +12.4%
-                        </span>
-                        <span className="text-gray-400 text-sm">
-                        vs เดือนที่แล้ว
-                        </span>
+                        <span className="text-green-600 font-semibold">—</span>
+                        <span className="text-gray-400 text-sm">ลูกค้าสะสม</span>
                     </div>
                     </div>
 
@@ -241,16 +281,11 @@ export default function HomePage() {
                     </p>
 
                     <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
-                        12
+                        {summary?.cancelledOrders ?? '...'}
                     </h1>
 
                     <div className="flex items-center gap-2">
-                        <span className="text-green-600 font-semibold">
-                        ▲ +12.4%
-                        </span>
-                        <span className="text-gray-400 text-sm">
-                        vs เดือนที่แล้ว
-                        </span>
+                        <span className="text-gray-400 text-sm">ออเดอร์ที่ถูกยกเลิก</span>
                     </div>
                     </div>
 
@@ -326,7 +361,7 @@ export default function HomePage() {
                         <div className=" m-2 ">
                             <div className='pl-6 pt-2 '>
                                 <h1 className='text-black text-2xl'>หมวดหมู่สินค้า</h1>
-                               <p className='text-gray-600 text-sm'>สัดส่วนยอดขายเดือนนี้</p>
+                               <p className='text-gray-600 text-sm'>สัดส่วนยอดขาย 30 วันล่าสุด</p>
                             </div>
                             <div className="flex-1 p-4 rounded-2xl  pr-5">
                                 <CategoryDonutChart />
@@ -335,32 +370,118 @@ export default function HomePage() {
                 </div>
            
         </div>
-        <div className='grid grid-cols-4 gap-4  h-[500px] w-full mt-6 rounded-2xl ' >
-            <div className=' col-span-3  rounded-2xl bg-white  shadow-md   border-red-500 border-2  font-semibold  w-full' >
+        <div className="grid grid-cols-4 gap-4 h-[500px] w-full mt-6 rounded-2xl   ">
+            <div className="col-span-3 h-full flex flex-col rounded-2xl bg-white shadow-md font-semibold w-full ">
                     
-                    <div className=' h-16 w-full flex  items-center   text-gray-500 font-semibold'> 
+                    <div className="h-28 w-full shrink-0 flex items-center pt-2 text-gray-500 font-semibold  ">
 
-                        <div className=' w-1/2 pl-6'>
+                        <div className="w-1/2 pl-6">
                                 <h1 className='text-black text-2xl'>ออเดอร์ล่าสุด</h1>
                                 <p className='text-sm'> 5 ออเดอร์ล่าสุด</p>
                         </div>
                         <div className=' w-1/2 flex items-center justify-end pr-4'>
                             
-                            <div className = 'flex gap-2 items-center justify-end pr-4 '>
-                                    <p>ดูทั้งหมด</p>
+                            <div className = 'flex gap-2 items-center justify-end pr-4 text-blue-500 hover:underline cursor-pointer'>
+                                    <p>ดูทั้งหมด ⭢ </p>
                             </div>
                         </div>
-
+                            
+                  
+                    </div>
+                    <div className="flex-1 min-h-0 overflow-auto px-4 pt-2    pb-4 ">
+                        <div className="overflow-hidden rounded-xl border border-gray-300 bg-white">
+                                        <table className="min-w-full table-fixed border-separate border-spacing-0   ">
+                                            <thead className="text-white">
+                                            <tr className="h-16">
+                                                <th className="rounded-tl-xl bg-[#0F2235] px-4 py-4 text-center text-sm font-semibold align-middle">
+                                                id
+                                                </th>
+                                                <th className="bg-[#0F2235] px-6 py-4 text-center text-sm font-semibold align-middle">
+                                                Customer name
+                                                </th>
+                                                <th className="bg-[#0F2235] px-6 py-4 text-center text-sm font-semibold align-middle">
+                                                Product name
+                                                </th>
+                                                <th className="bg-[#0F2235] px-6 py-4 text-center text-sm font-semibold align-middle">
+                                                Price
+                                                </th>
+                                                <th className="rounded-tr-xl bg-[#0F2235] px-6 py-4 text-center text-sm font-semibold align-middle">
+                                                Status
+                                                </th>
+                                            </tr>
+                                            </thead>
+                
+                                            <tbody className="divide-y divide-gray-200">
+                
+                                            {orders.length === 0 ? (
+                                            <tr className="h-20">
+                                                <td colSpan={5} className="text-gray-400 text-center align-middle">
+                                                ไม่มีข้อมูลสินค้า
+                                                </td>
+                                            </tr>
+                                            ) : orders.slice().reverse().slice(0, 5).map((order) => (
+                                              
+                                            <tr key={order.id} className="h-16 text-center hover:bg-gray-50">
+                                                <td className="text-[#8ba6ca] px-4 align-middle">{order.orderNo}</td>
+                                                <td className="px-4 align-middle">{order.shippingName}</td>
+                                                <td className="px-4 text-sm align-middle">
+                                                    {order.orderLines.map(line => line.productName).join(', ')}
+                                                </td>
+                                                <td className="px-4 align-middle">{order.totalAmount}</td>
+                                                <td className="px-4 align-middle">
+                                                    {renderStatus(order.status) || (
+                                                        <span className="inline-block px-3 py-1 bg-gray-100 rounded-md text-sm">ไม่พบค่า</span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                            ))}
+                                            </tbody>
+                                        </table>
+                        </div>
                     </div>
             </div>
-            <div className='  rounded-2xl bg-white  shadow-md   border-red-500 border-2 font-semibold   ' >  
-                    <div className='pl-6 pt-2 '>
-                                <h1 className='text-black text-2xl'>สินค้าขายดี</h1>
-                               <p className='text-gray-600 text-sm'>ของเดือน #เดือนนี้ </p>
-                    </div>  
+            <div className='  rounded-2xl bg-white  shadow-md   font-semibold   ' >  
+                 <div className='p-6 '>
+                                <h1 className='text-black text-2xl font-bold'>สินค้าขายดี</h1>
+                                <p className='text-gray-600 text-sm mb-4'>30 วันล่าสุด</p>
+
+                                {/* [Claude] แสดง top products จาก backend แทน hardcode */}
+                                {topProducts.length === 0 && (
+                                  <p className='text-gray-400 text-sm text-center py-4'>ยังไม่มีข้อมูล</p>
+                                )}
+                                {topProducts.map((item, index) => {
+                                  const maxQty = topProducts[0]?.totalQty || 1;
+                                  return (
+                                    <div key={item.productId} className='flex items-center gap-3 mb-3'>
+                                      <span className='text-gray-400 text-sm w-4'>{index + 1}</span>
+                                      {item.imageUrl
+                                        ? <img src={`http://localhost:8080/${item.imageUrl}`} alt={item.productName} className='w-10 h-10 rounded-md object-cover border flex-shrink-0' />
+                                        : <div className='w-10 h-10 rounded-md bg-gray-100 border flex-shrink-0 flex items-center justify-center text-gray-300 text-xs'>No img</div>
+                                      }
+                                      <div className='flex-1'>
+                                        <p className='text-sm font-semibold'>{item.productName}</p>
+                                        <p className='text-xs text-gray-400'>ขายแล้ว {item.totalQty} ชิ้น</p>
+                                        <div className='w-full bg-gray-200 rounded-full h-1 mt-1'>
+                                          <div
+                                            className='bg-blue-500 h-1 rounded-full'
+                                            style={{ width: `${(item.totalQty / maxQty) * 100}%` }}
+                                          />
+                                        </div>
+                                      </div>
+                                      <span className='text-sm font-bold text-gray-700'>
+                                        ฿{Number(item.totalRevenue).toLocaleString('th-TH')}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                </div>
             </div>
-            
+                            
         </div>
+        <div className='  rounded-2xlbg-[#EEF4FB]    h-[200]  ' >  
+                  
+        </div>
+            
     </div>
   );
 }

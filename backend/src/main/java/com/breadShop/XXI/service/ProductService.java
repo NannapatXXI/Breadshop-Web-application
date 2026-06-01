@@ -8,8 +8,10 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.breadShop.XXI.dto.product.ProductRequest;
 import com.breadShop.XXI.entity.Product;
@@ -56,15 +58,68 @@ public class ProductService {
         return productRepository.findAll();
     }
 
-    public void deleteProduct(Long id) throws IOException {
-        Product product = productRepository.findById(id).orElseThrow(() -> new RuntimeException("Product not found"));
-        if (product.getImageUrl() != null) {
-            Path filePath = Paths.get(System.getProperty("user.dir"))
-                                .resolve(product.getImageUrl());
 
-            Files.deleteIfExists(filePath);
+
+    /**
+     * ค้นหาสินค้าตาม ID หากไม่พบจะโยนข้อผิดพลาด 404 Not Found
+     * @param id ID ของสินค้าที่ต้องการค้นหา
+     * @return ข้อมูลสินค้าในรูปแบบ Product Entity หากพบ, หรือโยนข้อผิดพลาดหากไม่พบ
+     */
+    public Product getProductById(Long id) {
+        return productRepository.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Not Found Product ID")); 
+    }
+
+
+
+    // [Claude] อัปเดตข้อมูลสินค้า — ถ้าส่งรูปใหม่มาด้วยจะลบรูปเก่าแล้วบันทึกรูปใหม่
+    public Product updateProduct(Long id, ProductRequest request) throws IOException {
+
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found"));
+
+        product.setName(request.getName());
+        product.setPrice(request.getPrice());
+        product.setStock(request.getStock());
+        product.setDescription(request.getDescription());
+        product.setCategory(request.getCategory());
+        product.setExpiryDate(request.getExpiryDate());
+
+        // ถ้ามีรูปใหม่ส่งมา → ลบรูปเก่า แล้ว save รูปใหม่
+        if (request.getImage() != null && !request.getImage().isEmpty()) {
+            if (product.getImageUrl() != null) {
+                try {
+                    Files.deleteIfExists(Paths.get(System.getProperty("user.dir")).resolve(product.getImageUrl()));
+                } catch (IOException e) {
+                    System.out.println("Delete old image failed: " + e.getMessage());
+                }
+            }
+            String fileName = UUID.randomUUID() + "_" + request.getImage().getOriginalFilename();
+            File dest = new File(UPLOAD_DIR, fileName);
+            request.getImage().transferTo(dest);
+            product.setImageUrl("uploads/" + fileName);
         }
 
+        return productRepository.save(product);
+    }
+
+    public void deleteProduct(Long id) {
+
+        Product product = productRepository.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found"));
+    
+        if (product.getImageUrl() != null) {
+            try {
+                Path filePath = Paths.get(System.getProperty("user.dir"))
+                        .resolve(product.getImageUrl());
+    
+                Files.deleteIfExists(filePath);
+    
+            } catch (IOException e) {
+                System.out.println("Image delete failed: " + e.getMessage());
+            }
+        }
+    
         productRepository.delete(product);
     }
    /**
@@ -91,10 +146,12 @@ public class ProductService {
         return  count;
        
     }
-    public Long countProductsByStock() {
-        Long count = productRepository.countByStockGreaterThan(5);
+    public Long countProductsByStock(int stock) {
+        Long count = productRepository.countByStockGreaterThan(stock);
         System.out.println("Total low stock products: " + count);
         return  count;
        
     }
+
+  
 }

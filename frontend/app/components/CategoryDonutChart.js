@@ -1,28 +1,27 @@
 "use client";
 
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
+// [Claude] CategoryDonutChart — ดึงยอดขายแบ่งตาม category จาก backend แทน hardcode
 
-const data = [
-  { name: "เบเกอรี่", value: 33728 },
-  { name: "เค้ก", value: 23610 },
-  { name: "ขนมปัง", value: 16864 },
-  { name: "โดนัท", value: 10118 },
-];
+import { useEffect, useState } from "react";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import api from "@/lib/api";
 
-const COLORS = ["#1E3A8A", "#3B82F6", "#60A5FA", "#BFDBFE"];
-
-const total = data.reduce((sum, item) => sum + item.value, 0);
+const COLORS = ["#1E3A8A", "#3B82F6", "#60A5FA", "#BFDBFE", "#93C5FD"];
 
 export default function CategoryDonutChart() {
+  const [data, setData] = useState([]);
+
+  useEffect(() => {
+    api.get("/api/v1/admin/dashboard/category-sales")
+      .then((res) => setData(res.data.data))
+      .catch(() => setData([]));
+  }, []);
+
+  const total = data.reduce((sum, item) => sum + Number(item.value), 0);
+
   return (
-    <div className="w-full h-full flex flex-col md:flex-row items-center justify-between ">
-      
+    <div className="w-full h-full flex flex-col md:flex-row items-center justify-between">
+
       {/* วงกลม */}
       <div className="w-[280px] h-[280px] relative">
         <ResponsiveContainer>
@@ -35,11 +34,11 @@ export default function CategoryDonutChart() {
               paddingAngle={5}
               cornerRadius={10}
             >
-              {data.map((entry, index) => (
-                <Cell key={index} fill={COLORS[index]} />
+              {data.map((_, index) => (
+                <Cell key={index} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip />
+            <Tooltip formatter={(v) => `฿${Number(v).toLocaleString('th-TH')}`} />
           </PieChart>
         </ResponsiveContainer>
 
@@ -53,30 +52,16 @@ export default function CategoryDonutChart() {
       {/* Legend + ราคา */}
       <div className="space-y-4 w-full md:w-1/2 mt-6 md:mt-0">
         {data.map((item, index) => {
-          const percent = ((item.value / total) * 100).toFixed(0);
-
+          const percent = total > 0 ? ((Number(item.value) / total) * 100).toFixed(0) : 0;
           return (
-            <div
-              key={index}
-              className="flex items-center justify-between"
-            >
+            <div key={index} className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div
-                  className="w-4 h-4 rounded-md"
-                  style={{ backgroundColor: COLORS[index] }}
-                />
-                <span className="text-gray-600 font-medium">
-                  {item.name}
-                </span>
+                <div className="w-4 h-4 rounded-md" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
+                <span className="text-gray-600 font-medium">{item.name}</span>
               </div>
-
               <div className="text-right">
-                <p className="font-bold">
-                  ฿{item.value.toLocaleString()}
-                </p>
-                <p className="text-gray-400 text-sm">
-                  {percent}%
-                </p>
+                <p className="font-bold">฿{Number(item.value).toLocaleString('th-TH')}</p>
+                <p className="text-gray-400 text-sm">{percent}%</p>
               </div>
             </div>
           );

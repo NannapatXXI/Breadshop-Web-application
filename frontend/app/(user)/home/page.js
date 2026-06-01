@@ -1,94 +1,193 @@
-// app/(app)/home/page.js
-'use client'; 
+'use client';
 
-import { useEffect ,useState } from 'react'; // 1. Import useEffect
-import { useCart } from '../../CartContext';
-import { useAuth } from '../../context/AuthContext'; 
-import { getMe } from "@/services/auth.service";
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useAuth } from '../../context/AuthContext';
+import { getProducts, getorders } from '@/services/auth.service';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+const getGreeting = () => {
+  const h = new Date().getHours();
+  if (h < 12) return 'สวัสดีตอนเช้า';
+  if (h < 17) return 'สวัสดีตอนบ่าย';
+  return 'สวัสดีตอนเย็น';
+};
+
+const statusLabel = (status) => {
+  const map = {
+    PENDING:    { label: 'รอดำเนินการ', bg: '#fef9c3', color: '#854d0e' },
+    CONFIRMED:  { label: 'ยืนยันแล้ว',  bg: '#dbeafe', color: '#1e40af' },
+    PROCESSING: { label: 'กำลังเตรียม', bg: '#ede9fe', color: '#5b21b6' },
+    SHIPPED:    { label: 'จัดส่งแล้ว',  bg: '#dbeafe', color: '#1e40af' },
+    DELIVERED:  { label: 'สำเร็จ',      bg: '#dcfce7', color: '#166534' },
+    CANCELLED:  { label: 'ยกเลิก',      bg: '#fee2e2', color: '#991b1b' },
+    REFUNDED:   { label: 'คืนเงิน',     bg: '#fce7f3', color: '#9d174d' },
+  };
+  return map[status] || { label: status, bg: '#f1f5f9', color: '#475569' };
+};
 
 export default function HomePage() {
-  
-  const { addToCart } = useCart();
-  const { user, loading } = useAuth(); // ดึง User มาดูด้วย
-  const [mail, setMail] = useState("");
+  const { user } = useAuth();
+  const [products, setProducts] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [loadingOrders, setLoadingOrders] = useState(true);
 
-  // -------------------------------------------------------
-  // ส่วนที่เพิ่ม: ดึง Token มา Log เมื่อหน้าเว็บโหลด
-  // -------------------------------------------------------
   useEffect(() => {
-    // ดึง Token จาก LocalStorage
-    const token = localStorage.getItem('token');
-    
-    
-    console.log("=========== DEBUG LOGIN ===========");
-    console.log("Token:", token);      // ดูค่า Token
-    console.log("User:", user);        // ดูค่า User จาก Context
-    console.log("Loading:", loading);  // ดูสถานะ Loading
-    console.log("===================================");
-  }, [user, loading]); // ให้ทำงานใหม่เมื่อ user หรือ loading เปลี่ยนแปลง
+    getProducts()
+      .then(res => setProducts(res.data))
+      .catch(() => {})
+      .finally(() => setLoadingProducts(false));
 
-  // 🔹 โหลดค่าจาก localStorage ตอนหน้าโหลด
-  useEffect(() => {
-    const savedMail = localStorage.getItem("test_mail");
-    if (savedMail) {
-      setMail(savedMail);
-    }
+    getorders()
+      .then(res => setOrders(res.data))
+      .catch(() => {})
+      .finally(() => setLoadingOrders(false));
   }, []);
 
-  // บันทึกลง localStorage ทุกครั้งที่ mail เปลี่ยน
-  useEffect(() => {
-    localStorage.setItem("test_mail", mail);
-  }, [mail]);
-  const handleTestClick = async () => {
-    //addToCart();
-   
-
-    try {
-      
-      const res = await getMe();
-      console.log(res.data);
-  
-      if (!res.ok) {
-        throw new Error(res.data.message || "ไม่สามารถส่ง Email ได้");
-      }
-  
-    } catch (err) {
-     
-    } finally {
-     
-    }
-  };
+  const pendingOrders = orders.filter(o => o.status === 'PENDING' || o.status === 'PROCESSING' || o.status === 'CONFIRMED');
+  const latestOrder = [...orders].reverse()[0];
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold text-gray-800">
-        Welcome to your Dashboard!
-        {/* ลบ console.log ออกจากตรงนี้ เพราะมันจะไปโผล่เป็นข้อความบนหน้าเว็บครับ */}
-      </h1>
-      
-      {/* แสดงชื่อ User ถ้า Login แล้ว (ตัวอย่างการใช้) */}
-      {user && (
-        <p className="text-green-600 font-medium">
-           สวัสดีคุณ: {user.username || user.email || user.roles}
-        </p>
+    <div style={{ minHeight: '100vh', background: '#EEF4FB', padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+      {/* Welcome card */}
+      <div style={{ background: '#0B1F33', borderRadius: '14px', padding: '1.25rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <p style={{ color: '#8ba6ca', fontSize: '12px', margin: '0 0 4px' }}>{getGreeting()}</p>
+          <h2 style={{ color: 'white', fontSize: '18px', fontWeight: 500, margin: '0 0 6px' }}>
+            {user?.username || 'ผู้ใช้'} 👋
+          </h2>
+          {pendingOrders.length > 0 ? (
+            <p style={{ color: '#5a7a9a', fontSize: '13px', margin: 0 }}>
+              มีออเดอร์ที่รอดำเนินการ <span style={{ color: '#A8CEFF', fontWeight: 500 }}>{pendingOrders.length} รายการ</span>
+            </p>
+          ) : (
+            <p style={{ color: '#5a7a9a', fontSize: '13px', margin: 0 }}>ยังไม่มีออเดอร์ที่รอดำเนินการ</p>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: '1.5rem' }}>
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ color: 'white', fontSize: '22px', fontWeight: 500, margin: 0 }}>{orders.length}</p>
+            <p style={{ color: '#5a7a9a', fontSize: '11px', margin: '4px 0 0' }}>ออเดอร์ทั้งหมด</p>
+          </div>
+          <div style={{ width: '1px', background: '#1a3a5c' }} />
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ color: '#A8CEFF', fontSize: '22px', fontWeight: 500, margin: 0 }}>{pendingOrders.length}</p>
+            <p style={{ color: '#5a7a9a', fontSize: '11px', margin: '4px 0 0' }}>รอดำเนินการ</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Latest order alert */}
+      {latestOrder && (
+        <div style={{ background: 'white', borderRadius: '12px', border: '0.5px solid #dce8f0', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ width: '40px', height: '40px', background: '#EEF4FB', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <span style={{ fontSize: '20px' }}>📦</span>
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: '13px', fontWeight: 500, color: '#0B1F33', margin: '0 0 2px' }}>
+              {latestOrder.orderNo} · {statusLabel(latestOrder.status).label}
+            </p>
+            <p style={{ fontSize: '12px', color: '#8ba6ca', margin: 0 }}>
+              {latestOrder.orderLines?.map(l => l.productName).join(', ')} · ฿{latestOrder.totalAmount}
+            </p>
+          </div>
+          <Link href="/orders">
+            <span style={{ fontSize: '12px', color: '#378ADD', cursor: 'pointer', whiteSpace: 'nowrap' }}>ดูรายละเอียด →</span>
+          </Link>
+        </div>
       )}
 
-      <p className="mt-2 text-gray-600">
-        นี่คือเนื้อหาของหน้า Home ที่มาจาก `home/page.js`
-      </p>
+      {/* Products */}
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 500, color: '#0B1F33', margin: 0 }}>สินค้าแนะนำ</h3>
+          <Link href="/product">
+            <span style={{ fontSize: '12px', color: '#378ADD', cursor: 'pointer' }}>ดูทั้งหมด →</span>
+          </Link>
+        </div>
 
-      <button
-        onClick={handleTestClick}
-        className="
-          mt-6 px-4 py-2 bg-blue-600 text-white 
-          font-semibold rounded-lg shadow-md 
-          hover:bg-blue-700 transition duration-150
-        "
-      >
-        ทดสอบ (กดเพื่อเพิ่มสินค้า & Log Token)
-      </button>
+        {loadingProducts ? (
+          <p style={{ color: '#8ba6ca', fontSize: '13px' }}>กำลังโหลด...</p>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+            {products.slice(0, 4).map(product => (
+              <div key={product.id} style={{ background: 'white', borderRadius: '10px', overflow: 'hidden', border: '0.5px solid #dce8f0' }}>
+                <div style={{ height: '100px', background: '#f0f4f8', overflow: 'hidden', position: 'relative' }}>
+                  {product.imageUrl ? (
+                    <img src={`${API_URL}/${product.imageUrl}`} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ fontSize: '32px' }}>🍞</span>
+                    </div>
+                  )}
+                  {product.stock === 0 && (
+                    <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ color: 'white', fontSize: '11px', fontWeight: 500 }}>หมดแล้ว</span>
+                    </div>
+                  )}
+                </div>
+                <div style={{ padding: '8px 10px' }}>
+                  <p style={{ fontSize: '12px', fontWeight: 500, color: '#0B1F33', margin: '0 0 6px' }}>{product.name}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 500, color: '#0B1F33' }}>฿{product.price}</span>
+                    <button
+                      disabled={product.stock === 0}
+                      style={{ background: product.stock === 0 ? '#e2e8f0' : '#0B1F33', border: 'none', color: product.stock === 0 ? '#94a3b8' : '#A8CEFF', padding: '3px 8px', borderRadius: '5px', fontSize: '11px', cursor: product.stock === 0 ? 'not-allowed' : 'pointer' }}
+                    >
+                      + เพิ่ม
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
-      <input type="text" placeholder="Test Input"  value={mail} onChange={(e) => setMail(e.target.value)} className="mt-4 p-2 border border-gray-300 rounded-lg" />
+      {/* Recent orders */}
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 500, color: '#0B1F33', margin: 0 }}>ออเดอร์ล่าสุด</h3>
+          <Link href="/orders">
+            <span style={{ fontSize: '12px', color: '#378ADD', cursor: 'pointer' }}>ดูทั้งหมด →</span>
+          </Link>
+        </div>
+
+        {loadingOrders ? (
+          <p style={{ color: '#8ba6ca', fontSize: '13px' }}>กำลังโหลด...</p>
+        ) : orders.length === 0 ? (
+          <div style={{ background: 'white', borderRadius: '10px', border: '0.5px solid #dce8f0', padding: '2rem', textAlign: 'center' }}>
+            <p style={{ color: '#8ba6ca', fontSize: '13px', margin: 0 }}>ยังไม่มีออเดอร์</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {[...orders].reverse().slice(0, 3).map(order => {
+              const s = statusLabel(order.status);
+              return (
+                <div key={order.id} style={{ background: 'white', borderRadius: '10px', border: '0.5px solid #dce8f0', padding: '0.875rem 1rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '36px', height: '36px', background: '#EEF4FB', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <span style={{ fontSize: '18px' }}>📦</span>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: '13px', fontWeight: 500, color: '#0B1F33', margin: '0 0 2px' }}>{order.orderNo}</p>
+                    <p style={{ fontSize: '11px', color: '#8ba6ca', margin: 0 }}>
+                      {order.orderLines?.map(l => l.productName).join(', ')} · {order.orderLines?.length} รายการ
+                    </p>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <p style={{ fontSize: '13px', fontWeight: 500, color: '#0B1F33', margin: '0 0 4px' }}>฿{order.totalAmount}</p>
+                    <span style={{ fontSize: '11px', background: s.bg, color: s.color, padding: '2px 8px', borderRadius: '20px' }}>{s.label}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }

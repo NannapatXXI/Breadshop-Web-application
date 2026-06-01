@@ -7,6 +7,7 @@ import api from "@/lib/api";
 const AuthContext = createContext(null);
 
 const PUBLIC_PATHS = [
+  "/", 
   "/login",
   "/register",
   "/forgot-password",
@@ -35,9 +36,21 @@ export const AuthProvider = ({ children }) => {
       })
       .finally(() => setLoading(false));
   }, [pathname]);
+  
+  const logout = async () => {
+    console.log("logout called")
+    try {
+      await api.post("/api/v1/auth/logout");
+    } catch (err) {
+      console.error("logout error", err);
+    } finally {
+      setUser(null);
+      router.push("/login");
+    }
+  };
 
   return (
-    <AuthContext.Provider value={{ user, loading }}>
+    <AuthContext.Provider value={{ user, loading , logout}}>
       { children}
     </AuthContext.Provider>
   );

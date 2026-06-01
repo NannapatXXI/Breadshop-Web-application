@@ -1,7 +1,8 @@
 // components/Navbar.js
-import { FaBars, FaTrash } from 'react-icons/fa'; // 1. Import ไอคอน Hamburger และ "ถังขยะ"
-import { MdShoppingCart } from 'react-icons/md'; // 2. Import ไอคอน "ตะกร้า"
-import { useCart } from '../CartContext'; // 3. Import "ทางลัด" (Hook)
+import { FaBars, FaTrash } from 'react-icons/fa';
+import { MdShoppingCart } from 'react-icons/md';
+import Link from 'next/link'; // [Claude] ใช้ Link เพื่อไปหน้า profile
+import { useCart } from '../CartContext';
 import { useAuth } from "../context/AuthContext";
 export default function Navbar({ setIsOpen }) {
   // 4. ดึง State และฟังก์ชันจาก "สมอง"
@@ -25,7 +26,10 @@ export default function Navbar({ setIsOpen }) {
       
       {/* V V V 5. ส่วนตะกร้าและปุ่มลบ V V V */}
       <div className="flex items-center space-x-4">
-        <span className="text-gray-600 hidden md:block">Welcome, {user?.username}</span>
+        {/* [Claude] คลิกชื่อ user แล้วไปหน้า /profile */}
+        <Link href="/profile" className="text-gray-600 hidden md:block hover:text-indigo-500 transition-colors">
+          Welcome, {user?.username}
+        </Link>
 
         {/* ปุ่มลบ */}
         <button 
